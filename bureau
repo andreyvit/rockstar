@@ -4,7 +4,7 @@
 #
 # Portable bash (macOS bash 3.x + Linux bash), zero third-party deps.
 
-set -u
+set -euo pipefail
 
 print_err() {
   printf '%s\n' "$*" >&2
