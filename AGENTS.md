@@ -33,3 +33,4 @@
 - Report file ordering is lexicographic (not numeric).
 - If >50 report files: list earliest 20 + latest 30 (lexicographic).
 - Next report number is computed from the (possibly truncated) listing, matching the original quirk.
+- `-T/--list-tasks` lists up to 10 most recent task directories (lexicographic order).

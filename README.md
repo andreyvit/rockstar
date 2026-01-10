@@ -69,10 +69,10 @@ _tasks/2025-10-02-refactor-something/005-your-suffix.md
 
 ### List recent tasks (`-T`)
 
-Prints task directories from the last 30 days (oldest → newest):
+Prints up to 10 most recent task directories (oldest → newest among those shown):
 
 ```
-[3 tasks in past month]
+[3 recent tasks:]
 2025-10-01-implement-feature
 2025-10-01b-fix-bug
 2025-10-02-refactor-something
@@ -186,11 +186,9 @@ The filename format for new report files is:
 
 `%03d-<suffix>.md`
 
-### Recent tasks (past 30 days)
+### Recent tasks (`-T`)
 
-“Recent” tasks are those whose date portion is within the last 30 days. The comparison is done using the `YYYY-MM-DD` string prefix (lexicographic compare), with a small quirk preserved from the original implementation:
-- a trailing single-letter suffix (`b..y`) is stripped before comparing
-- a `zNNN` suffix is *not* stripped (the `YYYY-MM-DD` prefix still drives ordering)
+`-T` lists up to 10 most recent task directories by lexicographic order (which matches chronological order for the `YYYY-MM-DD...` prefix).
 
 ## Development
 

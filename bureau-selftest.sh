@@ -11,15 +11,6 @@ mktemp_dir() {
   printf '%s' "$d"
 }
 
-date_utc_days_ago() {
-  local days="$1"
-  if date -u -d "$days days ago" +%F >/dev/null 2>&1; then
-    date -u -d "$days days ago" +%F
-    return 0
-  fi
-  date -u -v-"$days"d +%F
-}
-
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
   exit 1
@@ -140,23 +131,27 @@ test_list_recent_tasks() {
   local tmp
   tmp="$(mktemp_dir)"
 
-  local d1 today
-  d1="$(date_utc_days_ago 10)"
-  today="$(date -u +%F)"
-
-  mkdir -p \
-    "$tmp/_tasks/${d1}-implement-feature" \
-    "$tmp/_tasks/${d1}b-fix-bug" \
-    "$tmp/_tasks/${today}-refactor-something"
+  mkdir -p "$tmp/_tasks"
+  local i
+  for ((i = 1; i <= 12; i++)); do
+    mkdir -p "$tmp/_tasks/2025-10-$(printf '%02d' "$i")-task-$i"
+  done
 
   local got
   got="$(cd "$tmp" && "$bureau" -T)"
 
   local want
-  want="[3 tasks in past month]
-${d1}-implement-feature
-${d1}b-fix-bug
-${today}-refactor-something"
+  want="[10 recent tasks:]
+2025-10-03-task-3
+2025-10-04-task-4
+2025-10-05-task-5
+2025-10-06-task-6
+2025-10-07-task-7
+2025-10-08-task-8
+2025-10-09-task-9
+2025-10-10-task-10
+2025-10-11-task-11
+2025-10-12-task-12"
 
   assert_eq "$got" "$want"
 }
@@ -165,21 +160,17 @@ test_long_options_list_tasks() {
   local tmp
   tmp="$(mktemp_dir)"
 
-  local d1 today
-  d1="$(date_utc_days_ago 10)"
-  today="$(date -u +%F)"
-
   mkdir -p \
-    "$tmp/_tasks/${d1}-implement-feature" \
-    "$tmp/_tasks/${today}-refactor-something"
+    "$tmp/_tasks/2025-10-01-a" \
+    "$tmp/_tasks/2025-10-02-b"
 
   local got
   got="$(cd "$tmp" && "$bureau" --list-tasks)"
 
   local want
-  want="[2 tasks in past month]
-${d1}-implement-feature
-${today}-refactor-something"
+  want="[2 recent tasks:]
+2025-10-01-a
+2025-10-02-b"
 
   assert_eq "$got" "$want"
 }
