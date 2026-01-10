@@ -413,22 +413,26 @@ main() {
         ;;
       -n)
         [[ $# -ge 2 ]] || die_usage "missing argument for -n"
+        [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
         action="new-report"
         action_arg="$2"
         shift 2
         ;;
       -T)
+        [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
         action="list-tasks"
         shift
         ;;
       -N)
         [[ $# -ge 2 ]] || die_usage "missing argument for -N"
+        [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
         action="new-task"
         action_arg="$2"
         shift 2
         ;;
       -S)
         [[ $# -ge 2 ]] || die_usage "missing argument for -S"
+        [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
         action="switch-task"
         action_arg="$2"
         shift 2
