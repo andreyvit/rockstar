@@ -53,11 +53,6 @@ list_task_dirs() {
   local -a dirs=()
   local dpath base
 
-  local old_nullglob
-  # Save and restore nullglob; without nullglob, an unmatched "*" stays literal.
-  old_nullglob="$(shopt -p nullglob || true)"
-  shopt -s nullglob
-
   for dpath in "$BUREAU_DIR"/*; do
     [[ -d "$dpath" ]] || continue
     # Basename without calling external tools.
@@ -66,9 +61,6 @@ list_task_dirs() {
       dirs+=("$base")
     fi
   done
-
-  # Restore previous nullglob setting.
-  eval "$old_nullglob" >/dev/null 2>&1 || true
 
   local -a sorted=()
   local line
@@ -138,28 +130,28 @@ find_next_task_dir_name() {
   local today
   today="$(date_today)"
 
-  local old_nullglob
-  # Save and restore nullglob; we use globs to check if a prefix is already used.
-  old_nullglob="$(shopt -p nullglob || true)"
-  shopt -s nullglob
-
   local i date_prefix candidate
   for ((i = 0; i < 1000; i++)); do
     date_prefix="$(date_suffix_for_index "$i")"
     [[ "$date_prefix" == "$today"* ]] || break
 
     # If any existing task dir starts with "<date_prefix>-", consider the prefix taken.
-    local -a matches=("$BUREAU_DIR/${date_prefix}-"*)
-    if [[ "${#matches[@]}" -eq 0 ]]; then
+    local used=0
+    local existing
+    for existing in "$BUREAU_DIR/${date_prefix}-"*; do
+      if [[ -d "$existing" ]]; then
+        used=1
+        break
+      fi
+    done
+
+    if [[ "$used" -eq 0 ]]; then
       candidate="${date_prefix}-${slug}"
-      eval "$old_nullglob" >/dev/null 2>&1 || true
       printf '%s' "$candidate"
       return 0
     fi
   done
 
-  # Restore previous nullglob setting.
-  eval "$old_nullglob" >/dev/null 2>&1 || true
   return 1
 }
 
@@ -167,11 +159,6 @@ list_report_files() {
   local task_dir="$1"
   local task_path
   task_path="$(join_path "$BUREAU_DIR" "$task_dir")"
-
-  local old_nullglob
-  # Save and restore nullglob; ensures "$task_path/*" expands to empty when no files exist.
-  old_nullglob="$(shopt -p nullglob || true)"
-  shopt -s nullglob
 
   local -a files=()
   local fpath base
@@ -181,9 +168,6 @@ list_report_files() {
     [[ "$base" =~ ^[0-9]+-.*\.md$ ]] || continue
     files+=("$base")
   done
-
-  # Restore previous nullglob setting.
-  eval "$old_nullglob" >/dev/null 2>&1 || true
 
   local -a sorted=()
   local line
