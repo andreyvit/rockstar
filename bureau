@@ -311,7 +311,7 @@ cmd_help() {
   printf '%s\n' "  --install               Install a global copy (~/bin or /usr/local/bin)."
 }
 
-require_single_action() { [[ "$action" == "cmd_status" ]] || die_usage "only one of -n, -T, -N, -S, --install-symlink, --install can be used at a time"; }
+require_single_action() { [[ -z "$action" ]] || die_usage "only one action allowed at a time"; }
 
 require_arg() { [[ $# -ge 2 ]] || die_usage "missing argument for $1"; }
 
@@ -404,7 +404,7 @@ cmd_install() {
 }
 
 main() {
-  local action="cmd_status"
+  local action=""
   local action_arg=""
   local help_requested=0
 
@@ -467,7 +467,7 @@ main() {
 
   init_bureau_dir
 
-  "$action" "$action_arg"
+  "${action:-cmd_status}" "$action_arg"
 }
 
 main "$@"
