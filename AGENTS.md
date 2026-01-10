@@ -19,7 +19,7 @@
 - Don’t use Bash 4+ features (e.g. associative arrays, `mapfile`, `${var,,}`, etc.).
 - Prefer `printf` over `echo`; always quote variables.
 - Keep strict mode (`set -euo pipefail`) enabled.
-- Avoid non-portable `date` arithmetic flags; if you ever need date math, support both GNU `date -d` and BSD/macOS `date -v`.
+- Avoid date arithmetic; this tool only needs “today” (`date +%F`).
 
 ## Tests
 
