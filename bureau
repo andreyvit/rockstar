@@ -13,23 +13,34 @@ die_usage() { print_err "$@"; exit 2; }
 date_today() { date +%F; }
 
 # Be forgiving: any entry name starting with 4 digits is considered a task.
-is_task_dir_name() { [[ "$1" =~ ^[0-9]{4} ]]; }
+TASK_NAME_RE='^[0-9]{4}'
+# Be forgiving: any filename starting with a digit is a report file.
+REPORT_NAME_RE='^[0-9]'
+
+list_basenames_matching() {
+  local dir="$1"
+  local type="$2" # "", "-f", or "-d"
+  local re="$3"
+
+  local path base
+  for path in "$dir"/*; do
+    case "$type" in
+      "") ;;
+      -f) [[ -f "$path" ]] || continue ;;
+      -d) [[ -d "$path" ]] || continue ;;
+      *) die_usage "internal error: invalid type: $type" ;;
+    esac
+
+    base="${path##*/}"
+    [[ "$base" =~ $re ]] || continue
+    printf '%s\n' "$base"
+  done
+}
 
 list_task_dirs() {
   mkdir -p "$BUREAU_DIR" 2>/dev/null || return 1
 
-  local -a dirs=()
-  local dpath base
-
-  for dpath in "$BUREAU_DIR"/*; do
-    # Basename without calling external tools.
-    base="${dpath##*/}"
-    if is_task_dir_name "$base"; then
-      dirs+=("$base")
-    fi
-  done
-
-  local -a sorted=($(printf '%s\n' "${dirs[@]}" | sort))
+  local -a sorted=($(list_basenames_matching "$BUREAU_DIR" "" "$TASK_NAME_RE" | sort))
   printf '%s\n' "${sorted[@]}"
 }
 
@@ -119,17 +130,7 @@ list_report_files() {
   local task_path
   task_path="$BUREAU_DIR/$task_dir"
 
-  local -a files=()
-  local fpath base
-  for fpath in "$task_path"/*; do
-    [[ -f "$fpath" ]] || continue
-    base="${fpath##*/}"
-    # Be forgiving: any filename starting with a digit is a report file.
-    [[ "$base" =~ ^[0-9] ]] || continue
-    files+=("$base")
-  done
-
-  local -a sorted=($(printf '%s\n' "${files[@]}" | sort -n))
+  local -a sorted=($(list_basenames_matching "$task_path" -f "$REPORT_NAME_RE" | sort -n))
 
   if [[ "${#sorted[@]}" -le 50 ]]; then
     printf '%s\n' "${sorted[@]}"
@@ -271,7 +272,7 @@ cmd_switch_task() {
     exit 2
   fi
 
-  if ! is_task_dir_name "$task_dir"; then
+  if [[ ! "$task_dir" =~ $TASK_NAME_RE ]]; then
     print_err "Task dir name must start with 4 digits: $task_dir"
     exit 2
   fi
@@ -291,8 +292,6 @@ cmd_help() {
   printf '%s\n' "Bureau - cli tool for managing AI agent report files."
   printf '\n'
   cmd_status
-  printf '\n'
-  printf '%s\n' "Additional options:"
   printf '\n'
   printf '%s\n' "Override _tasks subdir name by setting BUREAU_DIR=<subdir>."
   printf '%s\n' "This can be a name, a relative path or an absolute path."
