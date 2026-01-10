@@ -29,7 +29,7 @@ list_task_dirs() {
     fi
   done
 
-  local -a sorted=($(printf '%s\n' "${dirs[@]}" | LC_ALL=C sort))
+  local -a sorted=($(printf '%s\n' "${dirs[@]}" | sort))
   printf '%s\n' "${sorted[@]}"
 }
 
@@ -129,7 +129,7 @@ list_report_files() {
     files+=("$base")
   done
 
-  local -a sorted=($(printf '%s\n' "${files[@]}" | LC_ALL=C sort -n))
+  local -a sorted=($(printf '%s\n' "${files[@]}" | sort -n))
 
   if [[ "${#sorted[@]}" -le 50 ]]; then
     printf '%s\n' "${sorted[@]}"
