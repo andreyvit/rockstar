@@ -11,10 +11,7 @@ mktemp_dir() {
   printf '%s' "$d"
 }
 
-fail() {
-  printf 'FAIL: %s\n' "$*" >&2
-  exit 1
-}
+fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 
 assert_success() {
   local exit_code="$1"
@@ -49,10 +46,7 @@ assert_symlink_target() {
   [[ "$got" == "$want" ]] || fail "symlink $link_path points to $got, want $want"
 }
 
-assert_dir_exists() {
-  local path="$1"
-  [[ -d "$path" ]] || fail "expected directory: $path"
-}
+assert_dir_exists() { [[ -d "$1" ]] || fail "expected directory: $1"; }
 
 test_status_no_current_does_not_error() {
   local tmp

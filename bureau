@@ -6,24 +6,14 @@
 
 set -euo pipefail
 
-print_err() {
-  printf '%s\n' "$*" >&2
-}
+print_err() { printf '%s\n' "$*" >&2; }
 
-die_usage() {
-  print_err "$@"
-  exit 2
-}
+die_usage() { print_err "$@"; exit 2; }
 
-date_today() {
-  date +%F
-}
+date_today() { date +%F; }
 
-is_task_dir_name() {
-  local name="$1"
-  # Be forgiving: any entry name starting with 4 digits is considered a task.
-  [[ "$name" =~ ^[0-9]{4} ]]
-}
+# Be forgiving: any entry name starting with 4 digits is considered a task.
+is_task_dir_name() { [[ "$1" =~ ^[0-9]{4} ]]; }
 
 list_task_dirs() {
   mkdir -p "$BUREAU_DIR" 2>/dev/null || return 1
@@ -117,8 +107,8 @@ find_next_task_dir_name() {
       if [[ "$existing" == *"*"* ]]; then
         break
       fi
-        used=1
-        break
+      used=1
+      break
     done
 
     if [[ "$used" -eq 0 ]]; then
@@ -189,9 +179,7 @@ find_next_report_number() {
 }
 
 new_report_file_name() {
-  local next_number="$1"
-  local suffix="$2"
-  printf '%03d-%s.md' "$next_number" "$suffix"
+  printf '%03d-%s.md' "$1" "$2"
 }
 
 print_hints() {
@@ -339,14 +327,9 @@ cmd_help() {
   printf '%s\n' "This can be a name, a relative path or an absolute path."
 }
 
-require_single_action() {
-  [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
-}
+require_single_action() { [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"; }
 
-require_arg() {
-  local opt="$1"
-  [[ $# -ge 2 ]] || die_usage "missing argument for $opt"
-}
+require_arg() { [[ $# -ge 2 ]] || die_usage "missing argument for $1"; }
 
 main() {
   local action="status"
