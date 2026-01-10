@@ -200,6 +200,10 @@ cmd_new_report_file() {
     die_usage "missing -n <report-suffix>"
   fi
 
+  if [[ "$suffix" == *" "* || "$suffix" == */* ]]; then
+    die_usage "report suffix must not contain space or '/'"
+  fi
+
   if ! read_current_task_dir; then
     print_err "No current task selected."
     exit 1
@@ -239,6 +243,10 @@ cmd_new_task() {
 
   if [[ -z "${slug//[[:space:]]/}" ]]; then
     die_usage "missing -N <task-suffix>"
+  fi
+
+  if [[ "$slug" == *" "* || "$slug" == */* ]]; then
+    die_usage "task suffix must not contain space or '/'"
   fi
 
   local task_dir

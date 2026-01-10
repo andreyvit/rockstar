@@ -36,6 +36,12 @@ assert_not_contains() {
   fi
 }
 
+assert_exit_code() {
+  local got="$1"
+  local want="$2"
+  [[ "$got" == "$want" ]] || fail "expected exit code $want, got $got"
+}
+
 assert_symlink_target() {
   local link_path="$1"
   local want="$2"
@@ -143,6 +149,26 @@ test_new_task_creates_dir_and_updates_current() {
   assert_dir_exists "$tmp/_tasks/${today}b-second-task"
 }
 
+test_new_task_rejects_space_or_slash() {
+  local tmp
+  tmp="$(mktemp_dir)"
+
+  local out status
+  if out="$(cd "$tmp" && "$bureau" -N "bad slug" 2>&1)"; then
+    fail "expected failure"
+  else
+    status=$?
+  fi
+  assert_exit_code "$status" 2
+
+  if out="$(cd "$tmp" && "$bureau" -N "bad/slug" 2>&1)"; then
+    fail "expected failure"
+  else
+    status=$?
+  fi
+  assert_exit_code "$status" 2
+}
+
 test_switch_task_updates_current() {
   local tmp
   tmp="$(mktemp_dir)"
@@ -154,6 +180,33 @@ test_switch_task_updates_current() {
 
   (cd "$tmp" && "$bureau" -S 2025-10-01b-fix-bug >/dev/null)
   assert_symlink_target "$tmp/_tasks/current" "2025-10-01b-fix-bug"
+}
+
+test_new_report_rejects_space_or_slash() {
+  local tmp
+  tmp="$(mktemp_dir)"
+
+  local task_dir="2025-10-02-refactor-something"
+  mkdir -p "$tmp/_tasks/$task_dir"
+  ln -s "$task_dir" "$tmp/_tasks/current"
+  touch \
+    "$tmp/_tasks/$task_dir/001-user-request.md" \
+    "$tmp/_tasks/$task_dir/002-plan.md"
+
+  local out status
+  if out="$(cd "$tmp" && "$bureau" -n "bad slug" 2>&1)"; then
+    fail "expected failure"
+  else
+    status=$?
+  fi
+  assert_exit_code "$status" 2
+
+  if out="$(cd "$tmp" && "$bureau" -n "bad/slug" 2>&1)"; then
+    fail "expected failure"
+  else
+    status=$?
+  fi
+  assert_exit_code "$status" 2
 }
 
 test_help_mentions_bureau_dir() {
@@ -175,7 +228,9 @@ main() {
   test_new_report_file_returns_path_and_does_not_create_file
   test_list_tasks_returns_last_10
   test_new_task_creates_dir_and_updates_current
+  test_new_task_rejects_space_or_slash
   test_switch_task_updates_current
+  test_new_report_rejects_space_or_slash
   test_help_mentions_bureau_dir
 
   printf 'OK\n'
