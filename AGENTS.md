@@ -29,7 +29,7 @@
 ## Behavioral invariants to preserve
 
 - Task “today” is computed in local time.
-- Task directories are discovered leniently: any directory name starting with 4 digits is treated as a task.
+- Task directories are discovered leniently: any entry name starting with 4 digits is treated as a task.
 - Report file ordering is lexicographic (not numeric).
 - If >50 report files: list earliest 20 + latest 30 (lexicographic).
 - Next report number is computed from the (possibly truncated) listing, matching the original quirk.

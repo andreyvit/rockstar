@@ -54,7 +54,6 @@ list_task_dirs() {
   local dpath base
 
   for dpath in "$BUREAU_DIR"/*; do
-    [[ -d "$dpath" ]] || continue
     # Basename without calling external tools.
     base="${dpath##*/}"
     if is_task_dir_name "$base"; then
@@ -135,14 +134,16 @@ find_next_task_dir_name() {
     date_prefix="$(date_suffix_for_index "$i")"
     [[ "$date_prefix" == "$today"* ]] || break
 
-    # If any existing task dir starts with "<date_prefix>-", consider the prefix taken.
+    # If any existing entry starts with "<date_prefix>", consider the prefix taken.
     local used=0
     local existing
-    for existing in "$BUREAU_DIR/${date_prefix}-"*; do
-      if [[ -d "$existing" ]]; then
-        used=1
+    for existing in "$BUREAU_DIR/${date_prefix}"*; do
+      # If the glob didn't match anything, the literal pattern still contains "*".
+      if [[ "$existing" == *"*"* ]]; then
         break
       fi
+        used=1
+        break
     done
 
     if [[ "$used" -eq 0 ]]; then
@@ -339,7 +340,7 @@ cmd_switch_task() {
     exit 2
   fi
 
-  if [[ ! -d "$(join_path "$BUREAU_DIR" "$task_dir")" ]]; then
+  if [[ ! -e "$(join_path "$BUREAU_DIR" "$task_dir")" ]]; then
     print_err "Task not found: $task_dir"
     exit 1
   fi

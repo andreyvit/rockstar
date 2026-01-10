@@ -134,7 +134,7 @@ To create a new task for “today”, bureau picks the first unused directory na
 5. `YYYY-MM-DDz026-<slug>` (26th task of the day)
 6. `YYYY-MM-DDz027-<slug>` …
 
-“Unused” means: there is no existing task directory whose name starts with that date prefix followed by a dash (e.g. `2025-10-01b-`).
+“Unused” means: there is no existing entry in `BUREAU_DIR` whose name starts with that date prefix (e.g. `2025-10-01b`).
 
 Up to 1000 tasks per day are supported; beyond that, task creation fails.
 
