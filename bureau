@@ -15,36 +15,13 @@ die_usage() {
   exit 2
 }
 
-trim_trailing_slashes() {
-  local p="$1"
-  # Trim any number of trailing slashes, but keep "/" intact.
-  while [[ "$p" != "/" && "$p" == */ ]]; do
-    p="${p%/}"
-  done
-  printf '%s' "$p"
-}
-
-join_path() {
-  local a
-  a="$(trim_trailing_slashes "$1")"
-  shift
-
-  local out="$a"
-  local part
-  for part in "$@"; do
-    part="${part#/}"
-    out="${out%/}/$part"
-  done
-  printf '%s' "$out"
-}
-
 date_today() {
   date +%F
 }
 
 is_task_dir_name() {
   local name="$1"
-  # Be forgiving: any directory name starting with 4 digits is considered a task dir.
+  # Be forgiving: any entry name starting with 4 digits is considered a task.
   [[ "$name" =~ ^[0-9]{4} ]]
 }
 
@@ -75,7 +52,7 @@ list_task_dirs() {
 
 read_current_task_dir() {
   local link
-  link="$(join_path "$BUREAU_DIR" "current")"
+  link="$BUREAU_DIR/current"
 
   if [[ ! -L "$link" ]]; then
     return 1
@@ -95,7 +72,7 @@ update_current_symlink() {
 
   mkdir -p "$BUREAU_DIR" || return 1
   local link
-  link="$(join_path "$BUREAU_DIR" "current")"
+  link="$BUREAU_DIR/current"
 
   rm -f "$link" || return 1
   ln -s "$task_dir" "$link" || return 1
@@ -157,7 +134,7 @@ find_next_task_dir_name() {
 list_report_files() {
   local task_dir="$1"
   local task_path
-  task_path="$(join_path "$BUREAU_DIR" "$task_dir")"
+  task_path="$BUREAU_DIR/$task_dir"
 
   local -a files=()
   local fpath base
@@ -234,7 +211,7 @@ cmd_status() {
   fi
 
   local reports_dir
-  reports_dir="$(join_path "$BUREAU_DIR" "$CURRENT_TASK_DIR")"
+  reports_dir="$BUREAU_DIR/$CURRENT_TASK_DIR"
 
   local -a report_files=()
   local line
@@ -271,7 +248,7 @@ cmd_new_report_file() {
   next_number="$(find_next_report_number "$CURRENT_TASK_DIR")"
 
   printf '%s\n' "Write your report to:"
-  printf '%s\n' "$(join_path "$BUREAU_DIR" "$CURRENT_TASK_DIR" "$(new_report_file_name "$next_number" "$suffix")")"
+  printf '%s\n' "$BUREAU_DIR/$CURRENT_TASK_DIR/$(new_report_file_name "$next_number" "$suffix")"
 }
 
 cmd_list_recent_tasks() {
@@ -315,7 +292,7 @@ cmd_new_task() {
     exit 1
   fi
 
-  mkdir -p "$(join_path "$BUREAU_DIR" "$task_dir")" || exit 1
+  mkdir -p "$BUREAU_DIR/$task_dir" || exit 1
   update_current_symlink "$task_dir" || exit 1
 
   printf 'Switched to new task %s.\n' "$task_dir"
@@ -340,7 +317,7 @@ cmd_switch_task() {
     exit 2
   fi
 
-  if [[ ! -e "$(join_path "$BUREAU_DIR" "$task_dir")" ]]; then
+  if [[ ! -e "$BUREAU_DIR/$task_dir" ]]; then
     print_err "Task not found: $task_dir"
     exit 1
   fi
@@ -417,7 +394,10 @@ main() {
   if [[ -z "${BUREAU_DIR:-}" ]]; then
     BUREAU_DIR="_tasks"
   fi
-  BUREAU_DIR="$(trim_trailing_slashes "$BUREAU_DIR")"
+  # Normalize just a bit: drop a single trailing slash (except for "/").
+  if [[ "$BUREAU_DIR" != "/" ]]; then
+    BUREAU_DIR="${BUREAU_DIR%/}"
+  fi
 
   if [[ "$show_help" -eq 1 ]]; then
     if [[ "$action" != "status" ]]; then
