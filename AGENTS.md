@@ -10,7 +10,6 @@
 
 - The whole tool is a single script: `./bureau`.
 - `BUREAU_DIR` is the global “tasks root” and is the single source of truth. It is set once in `main()` from:
-  - `--dir/-d`
   - environment `BUREAU_DIR`
   - default `_tasks`
 - Helper functions assume `BUREAU_DIR` is set.
@@ -20,7 +19,7 @@
 - Don’t use Bash 4+ features (e.g. associative arrays, `mapfile`, `${var,,}`, etc.).
 - Prefer `printf` over `echo`; always quote variables.
 - Keep strict mode (`set -euo pipefail`) enabled.
-- Date arithmetic must work on both GNU `date` and BSD/macOS `date` (see existing `date_utc_days_ago` pattern: try `-d`, fall back to `-v`).
+- Avoid non-portable `date` arithmetic flags; if you ever need date math, support both GNU `date -d` and BSD/macOS `date -v`.
 
 ## Tests
 

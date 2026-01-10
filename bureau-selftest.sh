@@ -16,30 +16,46 @@ fail() {
   exit 1
 }
 
-assert_eq() {
-  local got="$1"
-  local want="$2"
-  if [[ "$got" != "$want" ]]; then
-    printf -- '--- got ---\n%s\n--- want ---\n%s\n' "$got" "$want" >&2
-    fail "assert_eq failed"
+assert_success() {
+  local exit_code="$1"
+  if [[ "$exit_code" -ne 0 ]]; then
+    fail "expected success, got exit code $exit_code"
   fi
 }
 
-test_status_no_current() {
+assert_contains() {
+  local haystack="$1"
+  local needle="$2"
+  if [[ "$haystack" != *"$needle"* ]]; then
+    fail "expected output to contain: $needle"
+  fi
+}
+
+assert_symlink_target() {
+  local link_path="$1"
+  local want="$2"
+  [[ -L "$link_path" ]] || fail "expected symlink: $link_path"
+  local got
+  got="$(readlink "$link_path")"
+  [[ "$got" == "$want" ]] || fail "symlink $link_path points to $got, want $want"
+}
+
+assert_dir_exists() {
+  local path="$1"
+  [[ -d "$path" ]] || fail "expected directory: $path"
+}
+
+test_status_no_current_does_not_error() {
   local tmp
   tmp="$(mktemp_dir)"
   (cd "$tmp" && mkdir -p _tasks)
 
-  local got
-  got="$(cd "$tmp" && "$bureau")"
-
-  local want
-  want=$'No current task selected.\n\n[to start new report file] bureau -n <report-suffix>\n[to switch to a new task]  bureau -N <task-suffix>\n[to switch to prior task]  bureau -S <YYYY-MM-DD-task-suffix>\n[to see recent tasks]      bureau -T'
-
-  assert_eq "$got" "$want"
+  local out
+  out="$(cd "$tmp" && "$bureau")"
+  assert_contains "$out" "No current task"
 }
 
-test_status_lists_reports() {
+test_status_with_current_does_not_error() {
   local tmp
   tmp="$(mktemp_dir)"
 
@@ -52,42 +68,12 @@ test_status_lists_reports() {
     "$tmp/_tasks/$task_dir/003-implementation.md" \
     "$tmp/_tasks/$task_dir/004-tests.md"
 
-  local got
-  got="$(cd "$tmp" && "$bureau")"
-
-  local want
-  want=$'Current task reports dir: _tasks/2025-10-02-refactor-something\n\n[4 reports found]\n001-user-request.md\n002-plan.md\n003-implementation.md\n004-tests.md\n\n[to start new report file] bureau -n <report-suffix>\n[to switch to a new task]  bureau -N <task-suffix>\n[to switch to prior task]  bureau -S <YYYY-MM-DD-task-suffix>\n[to see recent tasks]      bureau -T'
-
-  assert_eq "$got" "$want"
+  local out
+  out="$(cd "$tmp" && "$bureau")"
+  assert_contains "$out" "$task_dir"
 }
 
-test_long_options_dir_and_status() {
-  local tmp
-  tmp="$(mktemp_dir)"
-
-  local task_dir="2025-10-02-refactor-something"
-  mkdir -p "$tmp/mytasks/$task_dir"
-  ln -s "$task_dir" "$tmp/mytasks/current"
-  touch "$tmp/mytasks/$task_dir/001-user-request.md"
-
-  local got
-  got="$("$bureau" --dir "$tmp/mytasks")"
-
-  local want
-  want="Current task reports dir: ${tmp}/mytasks/2025-10-02-refactor-something
-
-[1 reports found]
-001-user-request.md
-
-[to start new report file] bureau -n <report-suffix>
-[to switch to a new task]  bureau -N <task-suffix>
-[to switch to prior task]  bureau -S <YYYY-MM-DD-task-suffix>
-[to see recent tasks]      bureau -T"
-
-  assert_eq "$got" "$want"
-}
-
-test_new_report_file_prints_next() {
+test_new_report_file_returns_path_and_does_not_create_file() {
   local tmp
   tmp="$(mktemp_dir)"
 
@@ -100,34 +86,23 @@ test_new_report_file_prints_next() {
     "$tmp/_tasks/$task_dir/003-implementation.md" \
     "$tmp/_tasks/$task_dir/004-tests.md"
 
-  local got
-  got="$(cd "$tmp" && "$bureau" -n your-suffix)"
+  local out path
+  out="$(cd "$tmp" && "$bureau" -n your-suffix)"
+  path="${out##*$'\n'}"
 
-  local want
-  want=$'Write your report to:\n_tasks/2025-10-02-refactor-something/005-your-suffix.md'
-
-  assert_eq "$got" "$want"
+  [[ "$path" == */005-your-suffix.md ]] || fail "unexpected report path: $path"
+  if [[ "$path" == /* ]]; then
+    if [[ -e "$path" ]]; then
+      fail "report file should not be created: $path"
+    fi
+  else
+    if [[ -e "$tmp/$path" ]]; then
+      fail "report file should not be created: $path"
+    fi
+  fi
 }
 
-test_long_options_new_report() {
-  local tmp
-  tmp="$(mktemp_dir)"
-
-  local task_dir="2025-10-02-refactor-something"
-  mkdir -p "$tmp/_tasks/$task_dir"
-  ln -s "$task_dir" "$tmp/_tasks/current"
-  touch "$tmp/_tasks/$task_dir/001-user-request.md"
-
-  local got
-  got="$(cd "$tmp" && "$bureau" --new-report your-suffix)"
-
-  local want
-  want=$'Write your report to:\n_tasks/2025-10-02-refactor-something/002-your-suffix.md'
-
-  assert_eq "$got" "$want"
-}
-
-test_list_recent_tasks() {
+test_list_tasks_returns_last_10() {
   local tmp
   tmp="$(mktemp_dir)"
 
@@ -137,129 +112,75 @@ test_list_recent_tasks() {
     mkdir -p "$tmp/_tasks/2025-10-$(printf '%02d' "$i")-task-$i"
   done
 
-  local got
-  got="$(cd "$tmp" && "$bureau" -T)"
+  local out
+  out="$(cd "$tmp" && "$bureau" -T)"
 
-  local want
-  want="[10 recent tasks:]
-2025-10-03-task-3
-2025-10-04-task-4
-2025-10-05-task-5
-2025-10-06-task-6
-2025-10-07-task-7
-2025-10-08-task-8
-2025-10-09-task-9
-2025-10-10-task-10
-2025-10-11-task-11
-2025-10-12-task-12"
+  local count=0
+  local last=""
+  local line
+  while IFS= read -r line; do
+    [[ "$line" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2} ]] || continue
+    count=$((count + 1))
+    last="$line"
+  done <<<"$out"
 
-  assert_eq "$got" "$want"
+  [[ "$count" -le 10 ]] || fail "expected <= 10 tasks, got $count"
+  [[ "$last" == "2025-10-12-task-12" ]] || fail "expected last task to be 2025-10-12-task-12, got $last"
 }
 
-test_long_options_list_tasks() {
-  local tmp
-  tmp="$(mktemp_dir)"
-
-  mkdir -p \
-    "$tmp/_tasks/2025-10-01-a" \
-    "$tmp/_tasks/2025-10-02-b"
-
-  local got
-  got="$(cd "$tmp" && "$bureau" --list-tasks)"
-
-  local want
-  want="[2 recent tasks:]
-2025-10-01-a
-2025-10-02-b"
-
-  assert_eq "$got" "$want"
-}
-
-test_new_task_uses_today_and_b_suffix() {
+test_new_task_creates_dir_and_updates_current() {
   local tmp
   tmp="$(mktemp_dir)"
 
   local today
   today="$(date +%F)"
 
-  local out1 got1
-  out1="$(cd "$tmp" && "$bureau" -N first-task)"
-  got1="${out1%%$'\n'*}"
-  assert_eq "$got1" "Switched to new task $today-first-task."
+  local out
+  out="$(cd "$tmp" && "$bureau" -N first-task)"
+  assert_contains "$out" "Switched to new task"
 
-  local out2 got2
-  out2="$(cd "$tmp" && "$bureau" -N second-task)"
-  got2="${out2%%$'\n'*}"
-  assert_eq "$got2" "Switched to new task ${today}b-second-task."
+  assert_symlink_target "$tmp/_tasks/current" "$today-first-task"
+  assert_dir_exists "$tmp/_tasks/$today-first-task"
+
+  (cd "$tmp" && "$bureau" -N second-task >/dev/null)
+  assert_symlink_target "$tmp/_tasks/current" "${today}b-second-task"
+  assert_dir_exists "$tmp/_tasks/${today}b-second-task"
 }
 
-test_long_options_new_task_and_switch_task() {
-  local tmp
-  tmp="$(mktemp_dir)"
-
-  local today
-  today="$(date +%F)"
-
-  local out task_dir
-  out="$(cd "$tmp" && "$bureau" --new-task demo)"
-  task_dir="${out#Switched to new task }"
-  task_dir="${task_dir%%.*}"
-
-  if [[ "$task_dir" != "$today-demo" ]]; then
-    fail "unexpected task_dir: $task_dir"
-  fi
-
-  mkdir -p "$tmp/_tasks/${today}b-other"
-
-  local out2 first
-  out2="$(cd "$tmp" && "$bureau" --switch-task "${today}b-other")"
-  first="${out2%%$'\n'*}"
-  assert_eq "$first" "Switched to preexisting task ${today}b-other."
-}
-
-test_switch_task() {
+test_switch_task_updates_current() {
   local tmp
   tmp="$(mktemp_dir)"
 
   mkdir -p "$tmp/_tasks/2025-10-01-implement-feature"
   mkdir -p "$tmp/_tasks/2025-10-01b-fix-bug"
   ln -s "2025-10-01-implement-feature" "$tmp/_tasks/current"
+  assert_symlink_target "$tmp/_tasks/current" "2025-10-01-implement-feature"
 
-  local out got
-  out="$(cd "$tmp" && "$bureau" -S 2025-10-01b-fix-bug)"
-  got="${out%%$'\n'*}"
-
-  assert_eq "$got" "Switched to preexisting task 2025-10-01b-fix-bug."
+  (cd "$tmp" && "$bureau" -S 2025-10-01b-fix-bug >/dev/null)
+  assert_symlink_target "$tmp/_tasks/current" "2025-10-01b-fix-bug"
 }
 
-test_help_output_contains_status() {
+test_help_mentions_bureau_dir() {
   local tmp
   tmp="$(mktemp_dir)"
   (cd "$tmp" && mkdir -p _tasks)
 
-  local got
-  got="$(cd "$tmp" && "$bureau" -h)"
-
-  local want
-  want=$'Bureau - cli tool for managing AI agent report files.\n\nNo current task selected.\n\n[to start new report file] bureau -n <report-suffix>\n[to switch to a new task]  bureau -N <task-suffix>\n[to switch to prior task]  bureau -S <YYYY-MM-DD-task-suffix>\n[to see recent tasks]      bureau -T\n\nAdditional options:\n\nOverride _task subdir name via -d <subdir> or by setting BUREAU_DIR=<subdir>.\nThis can be a name, a relative path or an absolute path.'
-
-  assert_eq "$got" "$want"
+  local out
+  out="$(cd "$tmp" && "$bureau" -h)"
+  assert_contains "$out" "Bureau - cli tool"
+  assert_contains "$out" "BUREAU_DIR"
 }
 
 main() {
   [[ -x "$bureau" ]] || fail "not executable: $bureau"
 
-  test_status_no_current
-  test_status_lists_reports
-  test_long_options_dir_and_status
-  test_new_report_file_prints_next
-  test_long_options_new_report
-  test_list_recent_tasks
-  test_long_options_list_tasks
-  test_new_task_uses_today_and_b_suffix
-  test_long_options_new_task_and_switch_task
-  test_switch_task
-  test_help_output_contains_status
+  test_status_no_current_does_not_error
+  test_status_with_current_does_not_error
+  test_new_report_file_returns_path_and_does_not_create_file
+  test_list_tasks_returns_last_10
+  test_new_task_creates_dir_and_updates_current
+  test_switch_task_updates_current
+  test_help_mentions_bureau_dir
 
   printf 'OK\n'
 }

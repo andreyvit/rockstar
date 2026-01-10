@@ -98,13 +98,12 @@ Switched to preexisting task YYYY-MM-DD-suffix.
 <then the same output as running bureau with no args>
 ```
 
-### Tasks root (`-d` / `BUREAU_DIR`)
+### Tasks root (`BUREAU_DIR`)
 
 By default, tasks live under `_tasks` in the current directory.
 
 Override with:
 - `BUREAU_DIR` environment variable
-- `-d <dir>` CLI flag (takes precedence over `BUREAU_DIR`)
 
 ### Help (`-h` / `--help`)
 
@@ -112,7 +111,7 @@ Override with:
 
 - `Bureau - cli tool for managing AI agent report files.`
 - the exact same output as `bureau` with no options
-- additional notes about `-d` / `BUREAU_DIR`
+- additional notes about `BUREAU_DIR`
 
 ## Behavior (ported from `bureaumcp`)
 

@@ -238,10 +238,11 @@ new_report_file_name() {
 }
 
 print_hints() {
-  printf '%s\n' "[to start new report file] bureau -n <report-suffix>"
-  printf '%s\n' "[to switch to a new task]  bureau -N <task-suffix>"
-  printf '%s\n' "[to switch to prior task]  bureau -S <YYYY-MM-DD-task-suffix>"
-  printf '%s\n' "[to see recent tasks]      bureau -T"
+  printf '%s\n' "[to see current task reports] bureau"
+  printf '%s\n' "[to start new report file]    bureau -n <report-suffix>"
+  printf '%s\n' "[to switch to a new task]     bureau -N <task-suffix>"
+  printf '%s\n' "[to switch to a prior task]   bureau -S <YYYY-MM-DD-task-suffix>"
+  printf '%s\n' "[to see recent tasks]         bureau -T"
 }
 
 cmd_status() {
@@ -370,7 +371,7 @@ cmd_help() {
   printf '\n'
   printf '%s\n' "Additional options:"
   printf '\n'
-  printf '%s\n' "Override _task subdir name via -d <subdir> or by setting BUREAU_DIR=<subdir>."
+  printf '%s\n' "Override _tasks subdir name by setting BUREAU_DIR=<subdir>."
   printf '%s\n' "This can be a name, a relative path or an absolute path."
 }
 
@@ -390,11 +391,6 @@ main() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      -d|--dir)
-        require_arg "-d/--dir" "$@"
-        BUREAU_DIR="$2"
-        shift 2
-        ;;
       -n|--new-report)
         require_arg "-n/--new-report" "$@"
         require_single_action
