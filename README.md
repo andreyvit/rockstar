@@ -1,10 +1,10 @@
 # bureau
 
-A small Go CLI that helps (AI) agents manage task-based report files in a predictable `_tasks/` directory: dated task folders, a `current` pointer, and sequentially-numbered Markdown reports.
+A small portable Bash CLI that helps (AI) agents manage task-based report files in a predictable `_tasks/` directory: dated task folders, a `current` pointer, and sequentially-numbered Markdown reports.
 
 This repo is a port of the *behavior* of `bureaumcp` (an MCP server) into a standalone CLI called `bureau`. MCP transport is intentionally out of scope here.
 
-Zero third-party dependencies (stdlib only).
+Zero third-party dependencies. Runs on macOS (old `/bin/bash`) and Linux.
 
 ## Why
 
@@ -31,11 +31,11 @@ _tasks/
 
 ## Install
 
-Local build:
-
 ```bash
-go build ./cmd/bureau
+./bureau
 ```
+
+To install globally, copy `bureau` somewhere on your `PATH` (e.g. `~/bin/bureau`) and keep it executable.
 
 ## Usage
 
@@ -106,6 +106,14 @@ Override with:
 - `BUREAU_DIR` environment variable
 - `-d <dir>` CLI flag (takes precedence over `BUREAU_DIR`)
 
+### Help (`-h` / `--help`)
+
+`bureau -h` and `bureau --help` print:
+
+- `Bureau - cli tool for managing AI agent report files.`
+- the exact same output as `bureau` with no options
+- additional notes about `-d` / `BUREAU_DIR`
+
 ## Behavior (ported from `bureaumcp`)
 
 This section is a precise spec of the underlying behavior, derived from `bureaumcp/index.js` and `bureaumcp/tools.test.js`.
@@ -137,6 +145,8 @@ To create a new task for “today”, bureau picks the first unused directory na
 
 Up to 1000 tasks per day are supported; beyond that, task creation fails.
 
+Task dates are computed in UTC (same as `bureaumcp`’s `toISOString()` behavior).
+
 ### Current task tracking
 
 The current task is stored as a symlink:
@@ -144,12 +154,6 @@ The current task is stored as a symlink:
 `<tasks-root>/current -> <task-dir-name>`
 
 When switching tasks, the existing `current` symlink (if any) is removed and recreated. The symlink target is written as a relative name (the task directory name), but when reading the current task the basename is used, so an absolute target also works.
-
-### Finding tasks by slug (reference behavior)
-
-`bureaumcp` supports switching by `task_slug` (the portion after the first `-` following the date prefix).
-
-If multiple task directories have the same slug, lookup picks the most recent one (lexicographically last directory name).
 
 ### Report files
 
@@ -188,11 +192,10 @@ The filename format for new report files is:
 - a trailing single-letter suffix (`b..y`) is stripped before comparing
 - a `zNNN` suffix is *not* stripped (the `YYYY-MM-DD` prefix still drives ordering)
 
-## Implementation plan (TDD)
+## Development
 
-Phases are intentionally small and “shippable”, with tests before implementation.
+Run regression tests:
 
-1. **Core library:** task dir parsing, report listing, numbering, recent tasks (unit tests first)
-2. **CLI wiring:** `-n`, `-T`, stdout formatting (integration-ish tests)
-3. **Task switching:** `-N`, `-S`, `current` symlink management (tests + real fs temp dirs)
-4. **Config:** `-d` and `BUREAU_DIR`, error UX, docs polish
+```bash
+./test/run.sh
+```
