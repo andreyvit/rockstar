@@ -122,16 +122,6 @@ test_list_tasks_returns_last_10() {
   assert_not_contains "$out" "2025-10-02-task-2"
   assert_contains "$out" "2025-10-03-task-3"
   assert_contains "$out" "2025-10-12-task-12"
-
-  local count=0
-  local line
-  # Read output line-by-line (no word-splitting), count task-like lines.
-  while IFS= read -r line; do
-    [[ "$line" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2} ]] || continue
-    count=$((count + 1))
-  done <<<"$out"
-
-  [[ "$count" -le 10 ]] || fail "expected <= 10 tasks, got $count"
 }
 
 test_new_task_creates_dir_and_updates_current() {

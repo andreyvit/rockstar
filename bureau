@@ -29,14 +29,7 @@ list_task_dirs() {
     fi
   done
 
-  local -a sorted=()
-  local line
-  # Read one task dir per line, preserving backslashes (-r) and not trimming spaces (IFS=).
-  while IFS= read -r line; do
-    sorted+=("$line")
-  # Process substitution avoids a pipeline (which would run the loop in a subshell).
-  done < <(printf '%s\n' "${dirs[@]}" | LC_ALL=C sort) # C locale => stable byte-wise sort
-
+  local -a sorted=($(printf '%s\n' "${dirs[@]}" | LC_ALL=C sort))
   printf '%s\n' "${sorted[@]}"
 }
 
@@ -136,12 +129,7 @@ list_report_files() {
     files+=("$base")
   done
 
-  local -a sorted=()
-  local line
-  # Read one filename per line; preserve backslashes and whitespace.
-  while IFS= read -r line; do
-    sorted+=("$line")
-  done < <(printf '%s\n' "${files[@]}" | LC_ALL=C sort -n) # numeric sort by leading number
+  local -a sorted=($(printf '%s\n' "${files[@]}" | LC_ALL=C sort -n))
 
   if [[ "${#sorted[@]}" -le 50 ]]; then
     printf '%s\n' "${sorted[@]}"
@@ -164,16 +152,11 @@ find_next_report_number() {
 
   local max=0
   local file n
-  # Iterate report filenames line-by-line (not word-splitting).
-  while IFS= read -r file; do
-    [[ -n "$file" ]] || continue
-    # Extract leading digits (the report number).
+  for file in $(list_report_files "$task_dir"); do
     [[ "$file" =~ ^([0-9]+) ]] || continue
     n="${BASH_REMATCH[1]}"
-    if ((n > max)); then
-      max="$n"
-    fi
-  done < <(list_report_files "$task_dir") # process substitution avoids a subshell loop
+    if ((n > max)); then max="$n"; fi
+  done
 
   printf '%s' $((max + 1))
 }
@@ -201,13 +184,7 @@ cmd_status() {
   local reports_dir
   reports_dir="$BUREAU_DIR/$CURRENT_TASK_DIR"
 
-  local -a report_files=()
-  local line
-  # Read report filenames produced by list_report_files() (one per line).
-  while IFS= read -r line; do
-    [[ -n "$line" ]] || continue
-    report_files+=("$line")
-  done < <(list_report_files "$CURRENT_TASK_DIR")
+  local -a report_files=($(list_report_files "$CURRENT_TASK_DIR"))
 
   printf 'Current task reports dir: %s\n' "$reports_dir"
   printf '\n'
@@ -240,13 +217,7 @@ cmd_new_report_file() {
 }
 
 cmd_list_recent_tasks() {
-  local -a all=()
-  local name
-  # Read task dir names produced by list_task_dirs() (one per line).
-  while IFS= read -r name; do
-    [[ -n "$name" ]] || continue
-    all+=("$name")
-  done < <(list_task_dirs)
+  local -a all=($(list_task_dirs))
 
   local total="${#all[@]}"
   local start=0

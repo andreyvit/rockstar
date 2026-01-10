@@ -20,6 +20,7 @@
 - Prefer `printf` over `echo`; always quote variables.
 - Keep strict mode (`set -euo pipefail`) enabled.
 - Avoid date arithmetic; this tool only needs “today” (`date +%F`).
+- Assume task/report names don’t contain spaces/backslashes; code uses simple word-splitting for readability.
 
 ## Tests
 
