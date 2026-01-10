@@ -302,10 +302,10 @@ cmd_help() {
   printf '\n'
   cmd_status
   printf '\n'
+  printf '%s\n' "Additional options:"
+  printf '\n'
   printf '%s\n' "Override _tasks subdir name by setting BUREAU_DIR=<subdir>."
   printf '%s\n' "This can be a name, a relative path or an absolute path."
-  printf '\n'
-  printf '%s\n' "Additional options:"
   printf '\n'
   printf '%s\n' "  --install-symlink       Install a global symlink (~/bin or /usr/local/bin)."
   printf '%s\n' "  --install               Install a global copy (~/bin or /usr/local/bin)."
@@ -315,29 +315,17 @@ require_single_action() { [[ -z "$action" ]] || die_usage "only one action allow
 
 require_arg() { [[ $# -ge 2 ]] || die_usage "missing argument for $1"; }
 
-init_bureau_dir() {
-  if [[ -z "${BUREAU_DIR:-}" ]]; then BUREAU_DIR="_tasks"; fi
-  if [[ "$BUREAU_DIR" != "/" ]]; then BUREAU_DIR="${BUREAU_DIR%/}"; fi
-}
-
-resolve_script_path() {
-  local src="$1"
-
-  if [[ "$src" != /* ]]; then
-    src="$(pwd)/$src"
-  fi
-
-  # Resolve symlinks iteratively so we install a link to the real script file.
-  while [[ -L "$src" ]]; do
-    local target
-    target="$(readlink "$src")" || break
-    if [[ "$target" != /* ]]; then
-      src="$(cd "$(dirname "$src")" && pwd)/$target"
-    else
-      src="$target"
-    fi
-  done
-
+script_path() {
+  local src="${BASH_SOURCE[0]}"
+  case "$src" in
+    /*) : ;;
+    */*) src="$(pwd)/$src" ;;
+    *)
+      # If invoked via $PATH, ${BASH_SOURCE[0]} has no directory component.
+      # Refuse, because install should be run from a known file path (e.g. ./bureau).
+      die_usage "can't determine script path; run install as ./bureau --install or ./bureau --install-symlink"
+      ;;
+  esac
   printf '%s\n' "$src"
 }
 
@@ -366,7 +354,7 @@ install_pick_dest_dir() {
 
 cmd_install() {
   local src
-  src="$(resolve_script_path "$0")"
+  src="$(script_path)"
 
   install_pick_dest_dir
 
@@ -381,7 +369,7 @@ cmd_install() {
 
 cmd_install_symlink() {
   local src
-  src="$(resolve_script_path "$0")"
+  src="$(script_path)"
 
   install_pick_dest_dir
 
@@ -392,51 +380,48 @@ cmd_install_symlink() {
   printf 'Installed symlink %s -> %s\n' "$dest" "$src"
 }
 
-main() {
-  local action=""
-  local action_arg=""
+if [[ -z "${BUREAU_DIR:-}" ]]; then BUREAU_DIR="_tasks"; fi
+if [[ "$BUREAU_DIR" != "/" ]]; then BUREAU_DIR="${BUREAU_DIR%/}"; fi
 
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      -n|--new-report)
-        require_arg "$@"
-        require_single_action
-        action="cmd_new_report_file"
-        action_arg="$2"
-        shift 2 ;;
-      -T|--list-tasks)
-        require_single_action
-        action="cmd_list_recent_tasks"
-        shift ;;
-      -N|--new-task)
-        require_arg "$@"
-        require_single_action
-        action="cmd_new_task"
-        action_arg="$2"
-        shift 2 ;;
-      -S|--switch-task)
-        require_arg "$@"
-        require_single_action
-        action="cmd_switch_task"
-        action_arg="$2"
-        shift 2 ;;
-      --install)
-        require_single_action
-        action="cmd_install"
-        shift ;;
-      --install-symlink)
-        require_single_action
-        action="cmd_install_symlink"
-        shift ;;
-      -h|--help) init_bureau_dir; cmd_help; exit 0;;
-      *)
-        die_usage "unknown argument: $1" ;;
-    esac
-  done
+action=""
+action_arg=""
 
-  init_bureau_dir
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -n|--new-report)
+      require_arg "$@"
+      require_single_action
+      action="cmd_new_report_file"
+      action_arg="$2"
+      shift 2 ;;
+    -T|--list-tasks)
+      require_single_action
+      action="cmd_list_recent_tasks"
+      shift ;;
+    -N|--new-task)
+      require_arg "$@"
+      require_single_action
+      action="cmd_new_task"
+      action_arg="$2"
+      shift 2 ;;
+    -S|--switch-task)
+      require_arg "$@"
+      require_single_action
+      action="cmd_switch_task"
+      action_arg="$2"
+      shift 2 ;;
+    --install)
+      require_single_action
+      action="cmd_install"
+      shift ;;
+    --install-symlink)
+      require_single_action
+      action="cmd_install_symlink"
+      shift ;;
+    -h|--help) cmd_help; exit 0;;
+    *)
+      die_usage "unknown argument: $1" ;;
+  esac
+done
 
-  "${action:-cmd_status}" "$action_arg"
-}
-
-main "$@"
+"${action:-cmd_status}" "$action_arg"

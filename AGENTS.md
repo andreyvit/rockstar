@@ -5,7 +5,7 @@
 - Portable Bash: must run on macOS `/bin/bash` 3.2 and on Linux Bash.
 - Zero dependencies: do not add external tools/libs beyond typical POSIX userland (`date`, `sort`, `readlink`, `ln`, `mkdir`, `rm`, `printf`).
 - `--install` / `--install-symlink` also rely on `cp` and `chmod`, and may use `sudo` for `/usr/local/bin`.
-- Behavior stability matters: CLI output is treated as an interface; keep it byte-for-byte stable unless intentionally changing the UX.
+- Prefer stable, readable output, but tests intentionally do not pin exact formatting; keep changes easy to tweak.
 
 ## Code structure
 
@@ -14,6 +14,7 @@
   - environment `BUREAU_DIR`
   - default `_tasks`
 - Helper functions assume `BUREAU_DIR` is set.
+- Installs use `${BASH_SOURCE[0]}` without resolving symlinks; `--install*` must be run via a path with a directory component (e.g. `./bureau`), not via `$PATH`.
 
 ## Bash compatibility rules
 

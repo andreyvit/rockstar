@@ -35,7 +35,12 @@ _tasks/
 ./bureau
 ```
 
-To install globally, copy `bureau` somewhere on your `PATH` (e.g. `~/bin/bureau`) and keep it executable.
+To install globally:
+
+- `./bureau --install-symlink` (preferred for development)
+- `./bureau --install` (copies the script)
+
+Note: run these as `./bureau ...` (not `bureau ...`) so the script can locate itself.
 
 ## Usage
 
@@ -112,11 +117,11 @@ Override with:
 - `Bureau - cli tool for managing AI agent report files.`
 - the exact same output as `bureau` with no options
 - additional notes about `BUREAU_DIR`
-- an install hint for `--install-symlink`
+- install hints for `--install-symlink` and `--install`
 
-## Behavior (ported from `bureaumcp`)
+## Behavior
 
-This section is a precise spec of the underlying behavior, derived from `bureaumcp/index.js` and `bureaumcp/tools.test.js`.
+This section is the intended behavior of the `bureau` CLI. It started as a port of the *idea* from `bureaumcp`, but the CLI intentionally differs in a few places for simplicity (e.g. lenient discovery rules, local-time dates, “last 10 tasks”).
 
 ### Task directory recognition
 
@@ -197,6 +202,12 @@ To install a `bureau` symlink on your `PATH`:
 
 ```bash
 ./bureau --install-symlink
+```
+
+To install a copy instead:
+
+```bash
+./bureau --install
 ```
 
 It installs into `~/bin` if it already exists and is writable, otherwise into `/usr/local/bin` if it exists. If `/usr/local/bin` exists but is not writable, it uses `sudo`.
