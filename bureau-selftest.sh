@@ -44,6 +44,7 @@ assert_symlink_target() {
   local want="$2"
   [[ -L "$link_path" ]] || fail "expected symlink: $link_path"
   local got
+  # readlink prints the symlink target without resolving it.
   got="$(readlink "$link_path")"
   [[ "$got" == "$want" ]] || fail "symlink $link_path points to $got, want $want"
 }
@@ -130,6 +131,7 @@ test_list_tasks_returns_last_10() {
 
   local count=0
   local line
+  # Read output line-by-line (no word-splitting), count task-like lines.
   while IFS= read -r line; do
     [[ "$line" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2} ]] || continue
     count=$((count + 1))

@@ -43,6 +43,7 @@ date_today() {
 
 is_task_dir_name() {
   local name="$1"
+  # Uses Bash regex match; capture groups land in BASH_REMATCH[].
   [[ "$name" =~ ^([0-9]{4}-[0-9]{2}-[0-9]{2}([b-y]|z[0-9]{3,})?)-(.+)$ ]]
 }
 
@@ -51,6 +52,7 @@ parse_task_dir_name() {
   if ! is_task_dir_name "$name"; then
     return 1
   fi
+  # Pull capture groups out of BASH_REMATCH set by is_task_dir_name().
   TASK_DATE_PREFIX="${BASH_REMATCH[1]}"
   TASK_SLUG="${BASH_REMATCH[3]}"
 }
@@ -62,24 +64,29 @@ list_task_dirs() {
   local dpath base
 
   local old_nullglob
+  # Save and restore nullglob; without nullglob, an unmatched "*" stays literal.
   old_nullglob="$(shopt -p nullglob || true)"
   shopt -s nullglob
 
   for dpath in "$BUREAU_DIR"/*; do
     [[ -d "$dpath" ]] || continue
+    # Basename without calling external tools.
     base="${dpath##*/}"
     if is_task_dir_name "$base"; then
       dirs+=("$base")
     fi
   done
 
+  # Restore previous nullglob setting.
   eval "$old_nullglob" >/dev/null 2>&1 || true
 
   local -a sorted=()
   local line
+  # Read one task dir per line, preserving backslashes (-r) and not trimming spaces (IFS=).
   while IFS= read -r line; do
     sorted+=("$line")
-  done < <(printf '%s\n' "${dirs[@]}" | LC_ALL=C sort)
+  # Process substitution avoids a pipeline (which would run the loop in a subshell).
+  done < <(printf '%s\n' "${dirs[@]}" | LC_ALL=C sort) # C locale => stable byte-wise sort
 
   printf '%s\n' "${sorted[@]}"
 }
@@ -95,6 +102,7 @@ read_current_task_dir() {
   local target
   target="$(readlink "$link" 2>/dev/null)" || return 1
 
+  # Normalize to "just the directory name" even if the symlink points to a path.
   target="${target%/}"
   CURRENT_TASK_DIR="${target##*/}"
   return 0
@@ -124,6 +132,7 @@ date_suffix_for_index() {
   if [[ "$i" -le 24 ]]; then
     local ascii=$((97 + i))
     local oct
+    # Convert ascii code to a letter without non-portable tools (printf octal escape).
     oct="$(printf '%03o' "$ascii")"
     local letter
     letter="$(printf "\\$oct")"
@@ -141,12 +150,13 @@ find_next_task_dir_name() {
 
   local -a used_prefixes=()
   local name
+  # Read task dir names produced by list_task_dirs() (one per line).
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
     parse_task_dir_name "$name" || continue
     [[ "$TASK_DATE_PREFIX" == "$today"* ]] || continue
     used_prefixes+=("$TASK_DATE_PREFIX")
-  done < <(list_task_dirs)
+  done < <(list_task_dirs) # process substitution keeps this loop in the current shell
 
   local i date_prefix candidate
   for ((i = 0; i < 1000; i++)); do
@@ -178,6 +188,7 @@ list_report_files() {
   task_path="$(join_path "$BUREAU_DIR" "$task_dir")"
 
   local old_nullglob
+  # Save and restore nullglob; ensures "$task_path/*" expands to empty when no files exist.
   old_nullglob="$(shopt -p nullglob || true)"
   shopt -s nullglob
 
@@ -190,13 +201,15 @@ list_report_files() {
     files+=("$base")
   done
 
+  # Restore previous nullglob setting.
   eval "$old_nullglob" >/dev/null 2>&1 || true
 
   local -a sorted=()
   local line
+  # Read one filename per line; preserve backslashes and whitespace.
   while IFS= read -r line; do
     sorted+=("$line")
-  done < <(printf '%s\n' "${files[@]}" | LC_ALL=C sort)
+  done < <(printf '%s\n' "${files[@]}" | LC_ALL=C sort) # stable byte-wise sort
 
   if [[ "${#sorted[@]}" -le 50 ]]; then
     printf '%s\n' "${sorted[@]}"
@@ -219,6 +232,7 @@ find_next_report_number() {
 
   local max=0
   local file prefix
+  # Iterate report filenames line-by-line (not word-splitting).
   while IFS= read -r file; do
     [[ -n "$file" ]] || continue
     prefix="${file%%-*}"
@@ -226,7 +240,7 @@ find_next_report_number() {
     if ((prefix > max)); then
       max="$prefix"
     fi
-  done < <(list_report_files "$task_dir")
+  done < <(list_report_files "$task_dir") # process substitution avoids a subshell loop
 
   printf '%s' $((max + 1))
 }
@@ -238,11 +252,11 @@ new_report_file_name() {
 }
 
 print_hints() {
-  printf '%s\n' "[to see current task reports] bureau"
-  printf '%s\n' "[to start new report file]    bureau -n <report-suffix>"
-  printf '%s\n' "[to switch to a new task]     bureau -N <task-suffix>"
-  printf '%s\n' "[to switch to a prior task]   bureau -S <YYYY-MM-DD-task-suffix>"
-  printf '%s\n' "[to see recent tasks]         bureau -T"
+  printf '%s\n' "[to see current task files] bureau"
+  printf '%s\n' "[to start new report file]  bureau -n <report-suffix>"
+  printf '%s\n' "[to switch to a new task]   bureau -N <task-suffix>"
+  printf '%s\n' "[to switch to a prior task] bureau -S <YYYY-MM-DD-task-suffix>"
+  printf '%s\n' "[to see recent tasks]       bureau -T"
 }
 
 cmd_status() {
@@ -258,6 +272,7 @@ cmd_status() {
 
   local -a report_files=()
   local line
+  # Read report filenames produced by list_report_files() (one per line).
   while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     report_files+=("$line")
@@ -296,6 +311,7 @@ cmd_new_report_file() {
 cmd_list_recent_tasks() {
   local -a all=()
   local name
+  # Read task dir names produced by list_task_dirs() (one per line).
   while IFS= read -r name; do
     [[ -n "$name" ]] || continue
     all+=("$name")
