@@ -180,7 +180,7 @@ test_new_task_uses_today_and_b_suffix() {
   tmp="$(mktemp_dir)"
 
   local today
-  today="$(date -u +%F)"
+  today="$(date +%F)"
 
   local out1 got1
   out1="$(cd "$tmp" && "$bureau" -N first-task)"
@@ -198,7 +198,7 @@ test_long_options_new_task_and_switch_task() {
   tmp="$(mktemp_dir)"
 
   local today
-  today="$(date -u +%F)"
+  today="$(date +%F)"
 
   local out task_dir
   out="$(cd "$tmp" && "$bureau" --new-task demo)"

@@ -29,7 +29,7 @@
 
 ## Behavioral invariants to preserve
 
-- Task “today” is computed in UTC.
+- Task “today” is computed in local time.
 - Report file ordering is lexicographic (not numeric).
 - If >50 report files: list earliest 20 + latest 30 (lexicographic).
 - Next report number is computed from the (possibly truncated) listing, matching the original quirk.

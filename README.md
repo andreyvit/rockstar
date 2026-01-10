@@ -145,7 +145,7 @@ To create a new task for “today”, bureau picks the first unused directory na
 
 Up to 1000 tasks per day are supported; beyond that, task creation fails.
 
-Task dates are computed in UTC (same as `bureaumcp`’s `toISOString()` behavior).
+Task dates are computed in local time.
 
 ### Current task tracking
 
