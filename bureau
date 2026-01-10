@@ -19,17 +19,12 @@ REPORT_NAME_RE='^[0-9]'
 
 list_basenames_matching() {
   local dir="$1"
-  local type="$2" # "", "-f", or "-d"
+  local type="$2" # "-f" or "-d"
   local re="$3"
 
   local path base
   for path in "$dir"/*; do
-    case "$type" in
-      "") ;;
-      -f) [[ -f "$path" ]] || continue ;;
-      -d) [[ -d "$path" ]] || continue ;;
-      *) die_usage "internal error: invalid type: $type" ;;
-    esac
+    test "$type" "$path" || continue
 
     base="${path##*/}"
     [[ "$base" =~ $re ]] || continue
@@ -40,7 +35,7 @@ list_basenames_matching() {
 list_task_dirs() {
   mkdir -p "$BUREAU_DIR" 2>/dev/null || return 1
 
-  local -a sorted=($(list_basenames_matching "$BUREAU_DIR" "" "$TASK_NAME_RE" | sort))
+  local -a sorted=($(list_basenames_matching "$BUREAU_DIR" -d "$TASK_NAME_RE" | sort))
   printf '%s\n' "${sorted[@]}"
 }
 
