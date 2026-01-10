@@ -121,15 +121,7 @@ This section is a precise spec of the underlying behavior, derived from `bureaum
 
 Directories are considered “task directories” only if they match:
 
-`YYYY-MM-DD[SUFFIX]-<slug...>`
-
-Where:
-- `YYYY-MM-DD` is a date
-- `SUFFIX` is optional and is either:
-  - a single letter in `b..y` (note: **no `a`**), or
-  - `zNNN...` where `NNN...` is 3+ digits (e.g. `z026`, `z1000`)
-
-Anything else under `_tasks/` is ignored for “task listing / lookup by slug”.
+Anything that begins with 4 digits (e.g. `2025...`) is treated as a task directory name.
 
 ### Generating a new task directory name
 
@@ -141,6 +133,8 @@ To create a new task for “today”, bureau picks the first unused directory na
 4. … through `YYYY-MM-DDy-<slug>` (25th task of the day)
 5. `YYYY-MM-DDz026-<slug>` (26th task of the day)
 6. `YYYY-MM-DDz027-<slug>` …
+
+“Unused” means: there is no existing task directory whose name starts with that date prefix followed by a dash (e.g. `2025-10-01b-`).
 
 Up to 1000 tasks per day are supported; beyond that, task creation fails.
 

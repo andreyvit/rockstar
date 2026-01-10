@@ -43,18 +43,8 @@ date_today() {
 
 is_task_dir_name() {
   local name="$1"
-  # Uses Bash regex match; capture groups land in BASH_REMATCH[].
-  [[ "$name" =~ ^([0-9]{4}-[0-9]{2}-[0-9]{2}([b-y]|z[0-9]{3,})?)-(.+)$ ]]
-}
-
-parse_task_dir_name() {
-  local name="$1"
-  if ! is_task_dir_name "$name"; then
-    return 1
-  fi
-  # Pull capture groups out of BASH_REMATCH set by is_task_dir_name().
-  TASK_DATE_PREFIX="${BASH_REMATCH[1]}"
-  TASK_SLUG="${BASH_REMATCH[3]}"
+  # Be forgiving: any directory name starting with 4 digits is considered a task dir.
+  [[ "$name" =~ ^[0-9]{4} ]]
 }
 
 list_task_dirs() {
@@ -148,37 +138,28 @@ find_next_task_dir_name() {
   local today
   today="$(date_today)"
 
-  local -a used_prefixes=()
-  local name
-  # Read task dir names produced by list_task_dirs() (one per line).
-  while IFS= read -r name; do
-    [[ -n "$name" ]] || continue
-    parse_task_dir_name "$name" || continue
-    [[ "$TASK_DATE_PREFIX" == "$today"* ]] || continue
-    used_prefixes+=("$TASK_DATE_PREFIX")
-  done < <(list_task_dirs) # process substitution keeps this loop in the current shell
+  local old_nullglob
+  # Save and restore nullglob; we use globs to check if a prefix is already used.
+  old_nullglob="$(shopt -p nullglob || true)"
+  shopt -s nullglob
 
   local i date_prefix candidate
   for ((i = 0; i < 1000; i++)); do
     date_prefix="$(date_suffix_for_index "$i")"
     [[ "$date_prefix" == "$today"* ]] || break
 
-    local used=0
-    local p
-    for p in "${used_prefixes[@]}"; do
-      if [[ "$p" == "$date_prefix" ]]; then
-        used=1
-        break
-      fi
-    done
-
-    if [[ "$used" -eq 0 ]]; then
+    # If any existing task dir starts with "<date_prefix>-", consider the prefix taken.
+    local -a matches=("$BUREAU_DIR/${date_prefix}-"*)
+    if [[ "${#matches[@]}" -eq 0 ]]; then
       candidate="${date_prefix}-${slug}"
+      eval "$old_nullglob" >/dev/null 2>&1 || true
       printf '%s' "$candidate"
       return 0
     fi
   done
 
+  # Restore previous nullglob setting.
+  eval "$old_nullglob" >/dev/null 2>&1 || true
   return 1
 }
 
@@ -364,8 +345,13 @@ cmd_switch_task() {
     die_usage "missing -S <YYYY-MM-DD-task-suffix>"
   fi
 
+  if [[ "$task_dir" == */* ]]; then
+    print_err "Task dir name must not contain '/': $task_dir"
+    exit 2
+  fi
+
   if ! is_task_dir_name "$task_dir"; then
-    print_err "Not a valid task dir name: $task_dir"
+    print_err "Task dir name must start with 4 digits: $task_dir"
     exit 2
   fi
 
