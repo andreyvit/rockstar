@@ -25,7 +25,8 @@
 ## Tests
 
 - Run: `./bureau-selftest.sh`
-- The selftest asserts exact stdout strings; if you change formatting, update tests deliberately.
+- The selftest focuses on filesystem effects and basic smoke checks (output may change freely).
+- By design, `--install-symlink` is not covered (it mutates real system paths).
 
 ## Behavioral invariants to preserve
 

@@ -19,12 +19,14 @@ REPORT_NAME_RE='^[0-9]'
 
 list_basenames_matching() {
   local dir="$1"
-  local type="$2" # "-f" or "-d"
+  local type="$2" # "" or "-f" or "-d"
   local re="$3"
 
   local path base
   for path in "$dir"/*; do
-    test "$type" "$path" || continue
+    if [[ -n "$type" ]]; then
+      test "$type" "$path" || continue
+    fi
 
     base="${path##*/}"
     [[ "$base" =~ $re ]] || continue
@@ -35,7 +37,7 @@ list_basenames_matching() {
 list_task_dirs() {
   mkdir -p "$BUREAU_DIR" 2>/dev/null || return 1
 
-  local -a sorted=($(list_basenames_matching "$BUREAU_DIR" -d "$TASK_NAME_RE" | sort))
+  local -a sorted=($(list_basenames_matching "$BUREAU_DIR" "" "$TASK_NAME_RE" | sort))
   printf '%s\n' "${sorted[@]}"
 }
 
@@ -296,13 +298,70 @@ cmd_help() {
   printf '\n'
   cmd_status
   printf '\n'
+  printf '%s\n' "Additional options:"
+  printf '\n'
   printf '%s\n' "Override _tasks subdir name by setting BUREAU_DIR=<subdir>."
   printf '%s\n' "This can be a name, a relative path or an absolute path."
+  printf '\n'
+  printf '%s\n' "Install a global symlink via --install-symlink."
 }
 
-require_single_action() { [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"; }
+require_single_action() { [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S, --install-symlink can be used at a time"; }
 
 require_arg() { [[ $# -ge 2 ]] || die_usage "missing argument for $1"; }
+
+resolve_script_path() {
+  local src="$1"
+
+  if [[ "$src" != /* ]]; then
+    src="$(pwd)/$src"
+  fi
+
+  # Resolve symlinks iteratively so we install a link to the real script file.
+  while [[ -L "$src" ]]; do
+    local target
+    target="$(readlink "$src")" || break
+    if [[ "$target" != /* ]]; then
+      src="$(cd "$(dirname "$src")" && pwd)/$target"
+    else
+      src="$target"
+    fi
+  done
+
+  printf '%s\n' "$src"
+}
+
+cmd_install_symlink() {
+  local src
+  src="$(resolve_script_path "$0")"
+
+  local dest_dir=""
+  if mkdir -p "$HOME/.bin" 2>/dev/null && [[ -w "$HOME/.bin" ]]; then
+    dest_dir="$HOME/.bin"
+  elif [[ -d /usr/local/bin && -w /usr/local/bin ]]; then
+    dest_dir="/usr/local/bin"
+  else
+    dest_dir="/usr/local/bin"
+    command -v sudo >/dev/null 2>&1 || die_usage "sudo not found; can't install to /usr/local/bin"
+    sudo mkdir -p "$dest_dir"
+  fi
+
+  local dest="$dest_dir/bureau"
+  if [[ -d "$dest" ]]; then
+    die_usage "can't install: $dest is a directory"
+  fi
+
+  if [[ "$dest_dir" == "/usr/local/bin" && ! -w "$dest_dir" ]]; then
+    sudo ln -sf "$src" "$dest"
+  else
+    ln -sf "$src" "$dest"
+  fi
+
+  printf 'Installed %s -> %s\n' "$dest" "$src"
+  if [[ "$dest_dir" == "$HOME/.bin" ]]; then
+    printf 'Ensure %s is on your PATH.\n' "$HOME/.bin"
+  fi
+}
 
 main() {
   local action="status"
@@ -337,6 +396,11 @@ main() {
         action_arg="$2"
         shift 2
         ;;
+      --install-symlink)
+        require_single_action
+        action="install-symlink"
+        shift
+        ;;
       -h|--help)
         show_help=1
         shift
@@ -357,7 +421,7 @@ main() {
 
   if [[ "$show_help" -eq 1 ]]; then
     if [[ "$action" != "status" ]]; then
-      die_usage "-h/--help cannot be combined with -n/-T/-N/-S"
+      die_usage "-h/--help cannot be combined with -n/-T/-N/-S/--install-symlink"
     fi
     cmd_help
     return 0
@@ -369,6 +433,7 @@ main() {
     list-tasks) cmd_list_recent_tasks ;;
     new-task) cmd_new_task "$action_arg" ;;
     switch-task) cmd_switch_task "$action_arg" ;;
+    install-symlink) cmd_install_symlink ;;
     *) die_usage "internal error: unknown action $action" ;;
   esac
 }

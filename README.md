@@ -112,6 +112,7 @@ Override with:
 - `Bureau - cli tool for managing AI agent report files.`
 - the exact same output as `bureau` with no options
 - additional notes about `BUREAU_DIR`
+- an install hint for `--install-symlink`
 
 ## Behavior (ported from `bureaumcp`)
 
@@ -189,3 +190,13 @@ Run regression tests:
 ```bash
 ./bureau-selftest.sh
 ```
+
+## Install symlink
+
+To install a `bureau` symlink on your `PATH`:
+
+```bash
+./bureau --install-symlink
+```
+
+It prefers `~/.bin` (if writable), then `/usr/local/bin` (if writable), otherwise it uses `sudo` to write to `/usr/local/bin`.
