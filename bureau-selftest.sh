@@ -31,6 +31,14 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local haystack="$1"
+  local needle="$2"
+  if [[ "$haystack" == *"$needle"* ]]; then
+    fail "expected output to not contain: $needle"
+  fi
+}
+
 assert_symlink_target() {
   local link_path="$1"
   local want="$2"
@@ -115,17 +123,19 @@ test_list_tasks_returns_last_10() {
   local out
   out="$(cd "$tmp" && "$bureau" -T)"
 
+  assert_not_contains "$out" "2025-10-01-task-1"
+  assert_not_contains "$out" "2025-10-02-task-2"
+  assert_contains "$out" "2025-10-03-task-3"
+  assert_contains "$out" "2025-10-12-task-12"
+
   local count=0
-  local last=""
   local line
   while IFS= read -r line; do
     [[ "$line" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2} ]] || continue
     count=$((count + 1))
-    last="$line"
   done <<<"$out"
 
   [[ "$count" -le 10 ]] || fail "expected <= 10 tasks, got $count"
-  [[ "$last" == "2025-10-12-task-12" ]] || fail "expected last task to be 2025-10-12-task-12, got $last"
 }
 
 test_new_task_creates_dir_and_updates_current() {
