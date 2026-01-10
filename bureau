@@ -360,7 +360,7 @@ cmd_install() {
 
   local dest="$INSTALL_DEST_DIR/bureau"
 
-  [[ -d "$dest" ]] && die_usage "can't install: $dest is a directory"
+  [[ -e "$dest" || -L "$dest" ]] && die_usage "can't install: already exists: $dest"
 
   $INSTALL_SUDO cp -f "$src" "$dest"
   $INSTALL_SUDO chmod 0755 "$dest"
@@ -374,7 +374,7 @@ cmd_install_symlink() {
   install_pick_dest_dir
 
   local dest="$INSTALL_DEST_DIR/bureau"
-  [[ -d "$dest" ]] && die_usage "can't install: $dest is a directory"
+  [[ -e "$dest" || -L "$dest" ]] && die_usage "can't install: already exists: $dest"
 
   $INSTALL_SUDO ln -sf "$src" "$dest"
   printf 'Installed symlink %s -> %s\n' "$dest" "$src"
