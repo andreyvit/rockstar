@@ -17,7 +17,8 @@ die_usage() {
 
 trim_trailing_slashes() {
   local p="$1"
-  while [[ "$p" != "/" && "${p%/}" != "$p" ]]; do
+  # Trim any number of trailing slashes, but keep "/" intact.
+  while [[ "$p" != "/" && "$p" == */ ]]; do
     p="${p%/}"
   done
   printf '%s' "$p"
