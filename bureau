@@ -310,6 +310,11 @@ require_single_action() { [[ "$action" == "status" ]] || die_usage "only one of 
 
 require_arg() { [[ $# -ge 2 ]] || die_usage "missing argument for $1"; }
 
+init_bureau_dir() {
+  if [[ -z "${BUREAU_DIR:-}" ]]; then BUREAU_DIR="_tasks"; fi
+  if [[ "$BUREAU_DIR" != "/" ]]; then BUREAU_DIR="${BUREAU_DIR%/}"; fi
+}
+
 resolve_script_path() {
   local src="$1"
 
@@ -364,9 +369,19 @@ cmd_install_symlink() {
 }
 
 main() {
+  local a
+  for a in "$@"; do
+    case "$a" in
+      -h|--help)
+        init_bureau_dir
+        cmd_help
+        return 0
+        ;;
+    esac
+  done
+
   local action="status"
   local action_arg=""
-  local show_help=0
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -401,31 +416,13 @@ main() {
         action="install-symlink"
         shift
         ;;
-      -h|--help)
-        show_help=1
-        shift
-        ;;
       *)
         die_usage "unknown argument: $1"
         ;;
     esac
   done
 
-  if [[ -z "${BUREAU_DIR:-}" ]]; then
-    BUREAU_DIR="_tasks"
-  fi
-  # Normalize just a bit: drop a single trailing slash (except for "/").
-  if [[ "$BUREAU_DIR" != "/" ]]; then
-    BUREAU_DIR="${BUREAU_DIR%/}"
-  fi
-
-  if [[ "$show_help" -eq 1 ]]; then
-    if [[ "$action" != "status" ]]; then
-      die_usage "-h/--help cannot be combined with -n/-T/-N/-S/--install-symlink"
-    fi
-    cmd_help
-    return 0
-  fi
+  init_bureau_dir
 
   case "$action" in
     status) cmd_status ;;
