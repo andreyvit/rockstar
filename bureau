@@ -65,8 +65,7 @@ parse_task_dir_name() {
 }
 
 list_task_dirs() {
-  local tasks_root="$1"
-  mkdir -p "$tasks_root" 2>/dev/null || return 1
+  mkdir -p "$BUREAU_DIR" 2>/dev/null || return 1
 
   local -a dirs=()
   local dpath base
@@ -75,7 +74,7 @@ list_task_dirs() {
   old_nullglob="$(shopt -p nullglob || true)"
   shopt -s nullglob
 
-  for dpath in "$tasks_root"/*; do
+  for dpath in "$BUREAU_DIR"/*; do
     [[ -d "$dpath" ]] || continue
     base="${dpath##*/}"
     if is_task_dir_name "$base"; then
@@ -95,9 +94,8 @@ list_task_dirs() {
 }
 
 read_current_task_dir() {
-  local tasks_root="$1"
   local link
-  link="$(join_path "$tasks_root" "current")"
+  link="$(join_path "$BUREAU_DIR" "current")"
 
   if [[ ! -L "$link" ]]; then
     return 1
@@ -112,12 +110,11 @@ read_current_task_dir() {
 }
 
 update_current_symlink() {
-  local tasks_root="$1"
-  local task_dir="$2"
+  local task_dir="$1"
 
-  mkdir -p "$tasks_root" || return 1
+  mkdir -p "$BUREAU_DIR" || return 1
   local link
-  link="$(join_path "$tasks_root" "current")"
+  link="$(join_path "$BUREAU_DIR" "current")"
 
   rm -f "$link" || return 1
   ln -s "$task_dir" "$link" || return 1
@@ -147,8 +144,7 @@ date_suffix_for_index() {
 }
 
 find_next_task_dir_name() {
-  local tasks_root="$1"
-  local slug="$2"
+  local slug="$1"
   local today
   today="$(date_utc_today)"
 
@@ -159,7 +155,7 @@ find_next_task_dir_name() {
     parse_task_dir_name "$name" || continue
     [[ "$TASK_DATE_PREFIX" == "$today"* ]] || continue
     used_prefixes+=("$TASK_DATE_PREFIX")
-  done < <(list_task_dirs "$tasks_root")
+  done < <(list_task_dirs)
 
   local i date_prefix candidate
   for ((i = 0; i < 1000; i++)); do
@@ -186,10 +182,9 @@ find_next_task_dir_name() {
 }
 
 list_report_files() {
-  local tasks_root="$1"
-  local task_dir="$2"
+  local task_dir="$1"
   local task_path
-  task_path="$(join_path "$tasks_root" "$task_dir")"
+  task_path="$(join_path "$BUREAU_DIR" "$task_dir")"
 
   local old_nullglob
   old_nullglob="$(shopt -p nullglob || true)"
@@ -229,8 +224,7 @@ list_report_files() {
 }
 
 find_next_report_number() {
-  local tasks_root="$1"
-  local task_dir="$2"
+  local task_dir="$1"
 
   local max=0
   local file prefix
@@ -241,7 +235,7 @@ find_next_report_number() {
     if ((prefix > max)); then
       max="$prefix"
     fi
-  done < <(list_report_files "$tasks_root" "$task_dir")
+  done < <(list_report_files "$task_dir")
 
   printf '%s' $((max + 1))
 }
@@ -260,9 +254,7 @@ print_hints() {
 }
 
 cmd_status() {
-  local tasks_root="$1"
-
-  if ! read_current_task_dir "$tasks_root"; then
+  if ! read_current_task_dir; then
     printf '%s\n' "No current task selected."
     printf '\n'
     print_hints
@@ -270,14 +262,14 @@ cmd_status() {
   fi
 
   local reports_dir
-  reports_dir="$(join_path "$tasks_root" "$CURRENT_TASK_DIR")"
+  reports_dir="$(join_path "$BUREAU_DIR" "$CURRENT_TASK_DIR")"
 
   local -a report_files=()
   local line
   while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     report_files+=("$line")
-  done < <(list_report_files "$tasks_root" "$CURRENT_TASK_DIR")
+  done < <(list_report_files "$CURRENT_TASK_DIR")
 
   printf 'Current task reports dir: %s\n' "$reports_dir"
   printf '\n'
@@ -291,27 +283,25 @@ cmd_status() {
 }
 
 cmd_new_report_file() {
-  local tasks_root="$1"
-  local suffix="$2"
+  local suffix="$1"
 
   if [[ -z "${suffix//[[:space:]]/}" ]]; then
     die_usage "missing -n <report-suffix>"
   fi
 
-  if ! read_current_task_dir "$tasks_root"; then
+  if ! read_current_task_dir; then
     print_err "No current task selected."
     exit 1
   fi
 
   local next_number
-  next_number="$(find_next_report_number "$tasks_root" "$CURRENT_TASK_DIR")"
+  next_number="$(find_next_report_number "$CURRENT_TASK_DIR")"
 
   printf '%s\n' "Write your report to:"
-  printf '%s\n' "$(join_path "$tasks_root" "$CURRENT_TASK_DIR" "$(new_report_file_name "$next_number" "$suffix")")"
+  printf '%s\n' "$(join_path "$BUREAU_DIR" "$CURRENT_TASK_DIR" "$(new_report_file_name "$next_number" "$suffix")")"
 }
 
 cmd_list_recent_tasks() {
-  local tasks_root="$1"
   local cutoff
   cutoff="$(date_utc_days_ago 30)"
 
@@ -330,7 +320,7 @@ cmd_list_recent_tasks() {
     if [[ "$date_only" > "$cutoff" || "$date_only" == "$cutoff" ]]; then
       recent+=("$name")
     fi
-  done < <(list_task_dirs "$tasks_root")
+  done < <(list_task_dirs)
 
   printf '[%d tasks in past month]\n' "${#recent[@]}"
   local t
@@ -340,30 +330,28 @@ cmd_list_recent_tasks() {
 }
 
 cmd_new_task() {
-  local tasks_root="$1"
-  local slug="$2"
+  local slug="$1"
 
   if [[ -z "${slug//[[:space:]]/}" ]]; then
     die_usage "missing -N <task-suffix>"
   fi
 
   local task_dir
-  if ! task_dir="$(find_next_task_dir_name "$tasks_root" "$slug")"; then
+  if ! task_dir="$(find_next_task_dir_name "$slug")"; then
     print_err "Too many tasks for today (max 1000)."
     exit 1
   fi
 
-  mkdir -p "$(join_path "$tasks_root" "$task_dir")" || exit 1
-  update_current_symlink "$tasks_root" "$task_dir" || exit 1
+  mkdir -p "$(join_path "$BUREAU_DIR" "$task_dir")" || exit 1
+  update_current_symlink "$task_dir" || exit 1
 
   printf 'Switched to new task %s.\n' "$task_dir"
   printf '\n'
-  cmd_status "$tasks_root"
+  cmd_status
 }
 
 cmd_switch_task() {
-  local tasks_root="$1"
-  local task_dir="$2"
+  local task_dir="$1"
 
   if [[ -z "${task_dir//[[:space:]]/}" ]]; then
     die_usage "missing -S <YYYY-MM-DD-task-suffix>"
@@ -374,23 +362,21 @@ cmd_switch_task() {
     exit 2
   fi
 
-  if [[ ! -d "$(join_path "$tasks_root" "$task_dir")" ]]; then
+  if [[ ! -d "$(join_path "$BUREAU_DIR" "$task_dir")" ]]; then
     print_err "Task not found: $task_dir"
     exit 1
   fi
 
-  update_current_symlink "$tasks_root" "$task_dir" || exit 1
+  update_current_symlink "$task_dir" || exit 1
   printf 'Switched to preexisting task %s.\n' "$task_dir"
   printf '\n'
-  cmd_status "$tasks_root"
+  cmd_status
 }
 
 cmd_help() {
-  local tasks_root="$1"
-
   printf '%s\n' "Bureau - cli tool for managing AI agent report files."
   printf '\n'
-  cmd_status "$tasks_root"
+  cmd_status
   printf '\n'
   printf '%s\n' "Additional options:"
   printf '\n'
@@ -399,7 +385,6 @@ cmd_help() {
 }
 
 main() {
-  local tasks_root=""
   local action="status"
   local action_arg=""
   local show_help=0
@@ -408,11 +393,11 @@ main() {
     case "$1" in
       -d|--dir)
         [[ $# -ge 2 ]] || die_usage "missing argument for -d"
-        tasks_root="$2"
+        BUREAU_DIR="$2"
         shift 2
         ;;
       --dir=*)
-        tasks_root="${1#--dir=}"
+        BUREAU_DIR="${1#--dir=}"
         shift
         ;;
       -n)
@@ -495,29 +480,25 @@ main() {
     esac
   done
 
-  if [[ -z "$tasks_root" ]]; then
-    if [[ -n "${BUREAU_DIR:-}" ]]; then
-      tasks_root="$BUREAU_DIR"
-    else
-      tasks_root="_tasks"
-    fi
+  if [[ -z "${BUREAU_DIR:-}" ]]; then
+    BUREAU_DIR="_tasks"
   fi
-  tasks_root="$(trim_trailing_slashes "$tasks_root")"
+  BUREAU_DIR="$(trim_trailing_slashes "$BUREAU_DIR")"
 
   if [[ "$show_help" -eq 1 ]]; then
     if [[ "$action" != "status" ]]; then
       die_usage "-h/--help cannot be combined with -n/-T/-N/-S"
     fi
-    cmd_help "$tasks_root"
+    cmd_help
     return 0
   fi
 
   case "$action" in
-    status) cmd_status "$tasks_root" ;;
-    new-report) cmd_new_report_file "$tasks_root" "$action_arg" ;;
-    list-tasks) cmd_list_recent_tasks "$tasks_root" ;;
-    new-task) cmd_new_task "$tasks_root" "$action_arg" ;;
-    switch-task) cmd_switch_task "$tasks_root" "$action_arg" ;;
+    status) cmd_status ;;
+    new-report) cmd_new_report_file "$action_arg" ;;
+    list-tasks) cmd_list_recent_tasks ;;
+    new-task) cmd_new_task "$action_arg" ;;
+    switch-task) cmd_switch_task "$action_arg" ;;
     *) die_usage "internal error: unknown action $action" ;;
   esac
 }
