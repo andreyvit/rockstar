@@ -152,13 +152,31 @@ find_next_task_dir_name() {
   local today
   today="$(date_utc_today)"
 
+  local -a used_prefixes=()
+  local name
+  while IFS= read -r name; do
+    [[ -n "$name" ]] || continue
+    parse_task_dir_name "$name" || continue
+    [[ "$TASK_DATE_PREFIX" == "$today"* ]] || continue
+    used_prefixes+=("$TASK_DATE_PREFIX")
+  done < <(list_task_dirs "$tasks_root")
+
   local i date_prefix candidate
   for ((i = 0; i < 1000; i++)); do
     date_prefix="$(date_suffix_for_index "$i")"
     [[ "$date_prefix" == "$today"* ]] || break
 
-    candidate="${date_prefix}-${slug}"
-    if [[ ! -e "$(join_path "$tasks_root" "$candidate")" ]]; then
+    local used=0
+    local p
+    for p in "${used_prefixes[@]}"; do
+      if [[ "$p" == "$date_prefix" ]]; then
+        used=1
+        break
+      fi
+    done
+
+    if [[ "$used" -eq 0 ]]; then
+      candidate="${date_prefix}-${slug}"
       printf '%s' "$candidate"
       return 0
     fi
@@ -453,4 +471,3 @@ main() {
 }
 
 main "$@"
-
