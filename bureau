@@ -298,15 +298,16 @@ cmd_help() {
   printf '\n'
   cmd_status
   printf '\n'
-  printf '%s\n' "Additional options:"
-  printf '\n'
   printf '%s\n' "Override _tasks subdir name by setting BUREAU_DIR=<subdir>."
   printf '%s\n' "This can be a name, a relative path or an absolute path."
   printf '\n'
-  printf '%s\n' "Install a global symlink via --install-symlink."
+  printf '%s\n' "Additional options:"
+  printf '\n'
+  printf '%s\n' "  --install-symlink       Install a global symlink (~/bin or /usr/local/bin)."
+  printf '%s\n' "  --install               Install a global copy (~/bin or /usr/local/bin)."
 }
 
-require_single_action() { [[ "$action" == "cmd_status" ]] || die_usage "only one of -n, -T, -N, -S, --install-symlink can be used at a time"; }
+require_single_action() { [[ "$action" == "cmd_status" ]] || die_usage "only one of -n, -T, -N, -S, --install-symlink, --install can be used at a time"; }
 
 require_arg() { [[ $# -ge 2 ]] || die_usage "missing argument for $1"; }
 
@@ -336,89 +337,127 @@ resolve_script_path() {
   printf '%s\n' "$src"
 }
 
-cmd_install_symlink() {
+install_pick_dest_dir() {
+  INSTALL_DEST_DIR=""
+  INSTALL_NEEDS_SUDO=0
+
+  if [[ -d "$HOME/bin" && -w "$HOME/bin" ]]; then
+    INSTALL_DEST_DIR="$HOME/bin"
+    return 0
+  fi
+
+  if [[ ! -d /usr/local/bin ]]; then
+    die_usage "/usr/local/bin not found; create it or use ~/bin"
+  fi
+
+  INSTALL_DEST_DIR="/usr/local/bin"
+  if [[ -w "$INSTALL_DEST_DIR" ]]; then
+    return 0
+  fi
+
+  command -v sudo >/dev/null 2>&1 || die_usage "sudo not found; can't install to /usr/local/bin"
+  INSTALL_NEEDS_SUDO=1
+}
+
+cmd_install() {
+  local mode="${1:-symlink}" # "symlink" or "copy"
+
   local src
   src="$(resolve_script_path "$0")"
 
-  local dest_dir=""
-  if [[ -d "$HOME/bin" && -w "$HOME/bin" ]]; then
-    dest_dir="$HOME/bin"
-  elif [[ -d /usr/local/bin && -w /usr/local/bin ]]; then
-    dest_dir="/usr/local/bin"
-  else
-    dest_dir="/usr/local/bin"
-    command -v sudo >/dev/null 2>&1 || die_usage "sudo not found; can't install to /usr/local/bin"
-    sudo mkdir -p "$dest_dir"
-  fi
+  install_pick_dest_dir
+  local dest_dir="$INSTALL_DEST_DIR"
+  local needs_sudo="$INSTALL_NEEDS_SUDO"
 
   local dest="$dest_dir/bureau"
   if [[ -d "$dest" ]]; then
     die_usage "can't install: $dest is a directory"
   fi
 
-  if [[ "$dest_dir" == "/usr/local/bin" && ! -w "$dest_dir" ]]; then
-    sudo ln -sf "$src" "$dest"
+  if [[ "$mode" == "symlink" ]]; then
+    if [[ "$needs_sudo" -eq 1 ]]; then
+      sudo ln -sf "$src" "$dest"
+    else
+      ln -sf "$src" "$dest"
+    fi
+    printf 'Installed symlink %s -> %s\n' "$dest" "$src"
+  elif [[ "$mode" == "copy" ]]; then
+    if [[ "$needs_sudo" -eq 1 ]]; then
+      sudo cp -f "$src" "$dest"
+      sudo chmod 0755 "$dest"
+    else
+      cp -f "$src" "$dest"
+      chmod 0755 "$dest"
+    fi
+    printf 'Installed %s\n' "$dest"
   else
-    ln -sf "$src" "$dest"
+    die_usage "internal error: unknown install mode: $mode"
   fi
 
-  printf 'Installed %s -> %s\n' "$dest" "$src"
   if [[ "$dest_dir" == "$HOME/bin" ]]; then
     printf 'Ensure %s is on your PATH.\n' "$HOME/bin"
   fi
 }
 
 main() {
-  local a
-  for a in "$@"; do
-    case "$a" in
-      -h|--help)
-        init_bureau_dir
-        cmd_help
-        return 0
-        ;;
-    esac
-  done
-
   local action="cmd_status"
   local action_arg=""
+  local help_requested=0
 
   while [[ $# -gt 0 ]]; do
+    if [[ "$help_requested" -eq 1 ]]; then
+      case "$1" in
+        -n|--new-report|-N|--new-task|-S|--switch-task)
+          shift
+          [[ $# -gt 0 ]] && shift
+          ;;
+        *)
+          shift
+          ;;
+      esac
+      continue
+    fi
+
     case "$1" in
+      -h|--help)
+        action="cmd_help"
+        help_requested=1
+        shift
+        ;;
       -n|--new-report)
         require_arg "-n/--new-report" "$@"
         require_single_action
         action="cmd_new_report_file"
         action_arg="$2"
-        shift 2
-        ;;
+        shift 2 ;;
       -T|--list-tasks)
         require_single_action
         action="cmd_list_recent_tasks"
-        shift
-        ;;
+        shift ;;
       -N|--new-task)
         require_arg "-N/--new-task" "$@"
         require_single_action
         action="cmd_new_task"
         action_arg="$2"
-        shift 2
-        ;;
+        shift 2 ;;
       -S|--switch-task)
         require_arg "-S/--switch-task" "$@"
         require_single_action
         action="cmd_switch_task"
         action_arg="$2"
-        shift 2
-        ;;
+        shift 2 ;;
+      --install)
+        require_single_action
+        action="cmd_install"
+        action_arg="copy"
+        shift ;;
       --install-symlink)
         require_single_action
-        action="cmd_install_symlink"
-        shift
-        ;;
+        action="cmd_install"
+        action_arg="symlink"
+        shift ;;
       *)
-        die_usage "unknown argument: $1"
-        ;;
+        die_usage "unknown argument: $1" ;;
     esac
   done
 

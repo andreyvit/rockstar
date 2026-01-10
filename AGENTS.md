@@ -4,6 +4,7 @@
 
 - Portable Bash: must run on macOS `/bin/bash` 3.2 and on Linux Bash.
 - Zero dependencies: do not add external tools/libs beyond typical POSIX userland (`date`, `sort`, `readlink`, `ln`, `mkdir`, `rm`, `printf`).
+- `--install` / `--install-symlink` also rely on `cp` and `chmod`, and may use `sudo` for `/usr/local/bin`.
 - Behavior stability matters: CLI output is treated as an interface; keep it byte-for-byte stable unless intentionally changing the UX.
 
 ## Code structure
