@@ -343,10 +343,11 @@ resolve_script_path() {
 
 install_pick_dest_dir() {
   INSTALL_DEST_DIR=""
-  INSTALL_NEEDS_SUDO=0
+  INSTALL_SUDO=""
 
   if [[ -d "$HOME/bin" && -w "$HOME/bin" ]]; then
     INSTALL_DEST_DIR="$HOME/bin"
+    printf 'Ensure %s is on your PATH.\n' "$HOME/bin"
     return 0
   fi
 
@@ -360,76 +361,45 @@ install_pick_dest_dir() {
   fi
 
   command -v sudo >/dev/null 2>&1 || die_usage "sudo not found; can't install to /usr/local/bin"
-  INSTALL_NEEDS_SUDO=1
+  INSTALL_SUDO=sudo
 }
 
 cmd_install() {
-  local mode="${1:-symlink}" # "symlink" or "copy"
-
   local src
   src="$(resolve_script_path "$0")"
 
   install_pick_dest_dir
-  local dest_dir="$INSTALL_DEST_DIR"
-  local needs_sudo="$INSTALL_NEEDS_SUDO"
 
-  local dest="$dest_dir/bureau"
-  if [[ -d "$dest" ]]; then
-    die_usage "can't install: $dest is a directory"
-  fi
+  local dest="$INSTALL_DEST_DIR/bureau"
 
-  if [[ "$mode" == "symlink" ]]; then
-    if [[ "$needs_sudo" -eq 1 ]]; then
-      sudo ln -sf "$src" "$dest"
-    else
-      ln -sf "$src" "$dest"
-    fi
-    printf 'Installed symlink %s -> %s\n' "$dest" "$src"
-  elif [[ "$mode" == "copy" ]]; then
-    if [[ "$needs_sudo" -eq 1 ]]; then
-      sudo cp -f "$src" "$dest"
-      sudo chmod 0755 "$dest"
-    else
-      cp -f "$src" "$dest"
-      chmod 0755 "$dest"
-    fi
-    printf 'Installed %s\n' "$dest"
-  else
-    die_usage "internal error: unknown install mode: $mode"
-  fi
+  [[ -d "$dest" ]] && die_usage "can't install: $dest is a directory"
 
-  if [[ "$dest_dir" == "$HOME/bin" ]]; then
-    printf 'Ensure %s is on your PATH.\n' "$HOME/bin"
-  fi
+  $INSTALL_SUDO cp -f "$src" "$dest"
+  $INSTALL_SUDO chmod 0755 "$dest"
+  printf 'Installed %s\n' "$dest"
+}
+
+cmd_install_symlink() {
+  local src
+  src="$(resolve_script_path "$0")"
+
+  install_pick_dest_dir
+
+  local dest="$INSTALL_DEST_DIR/bureau"
+  [[ -d "$dest" ]] && die_usage "can't install: $dest is a directory"
+
+  $INSTALL_SUDO ln -sf "$src" "$dest"
+  printf 'Installed symlink %s -> %s\n' "$dest" "$src"
 }
 
 main() {
   local action=""
   local action_arg=""
-  local help_requested=0
 
   while [[ $# -gt 0 ]]; do
-    if [[ "$help_requested" -eq 1 ]]; then
-      case "$1" in
-        -n|--new-report|-N|--new-task|-S|--switch-task)
-          shift
-          [[ $# -gt 0 ]] && shift
-          ;;
-        *)
-          shift
-          ;;
-      esac
-      continue
-    fi
-
     case "$1" in
-      -h|--help)
-        action="cmd_help"
-        help_requested=1
-        shift
-        ;;
       -n|--new-report)
-        require_arg "-n/--new-report" "$@"
+        require_arg "$@"
         require_single_action
         action="cmd_new_report_file"
         action_arg="$2"
@@ -439,13 +409,13 @@ main() {
         action="cmd_list_recent_tasks"
         shift ;;
       -N|--new-task)
-        require_arg "-N/--new-task" "$@"
+        require_arg "$@"
         require_single_action
         action="cmd_new_task"
         action_arg="$2"
         shift 2 ;;
       -S|--switch-task)
-        require_arg "-S/--switch-task" "$@"
+        require_arg "$@"
         require_single_action
         action="cmd_switch_task"
         action_arg="$2"
@@ -453,13 +423,12 @@ main() {
       --install)
         require_single_action
         action="cmd_install"
-        action_arg="copy"
         shift ;;
       --install-symlink)
         require_single_action
-        action="cmd_install"
-        action_arg="symlink"
+        action="cmd_install_symlink"
         shift ;;
+      -h|--help) init_bureau_dir; cmd_help; exit 0;;
       *)
         die_usage "unknown argument: $1" ;;
     esac
