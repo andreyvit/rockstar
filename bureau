@@ -406,10 +406,14 @@ main() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      -d)
+      -d|--dir)
         [[ $# -ge 2 ]] || die_usage "missing argument for -d"
         tasks_root="$2"
         shift 2
+        ;;
+      --dir=*)
+        tasks_root="${1#--dir=}"
+        shift
         ;;
       -n)
         [[ $# -ge 2 ]] || die_usage "missing argument for -n"
@@ -418,7 +422,25 @@ main() {
         action_arg="$2"
         shift 2
         ;;
+      --new-report)
+        [[ $# -ge 2 ]] || die_usage "missing argument for -n"
+        [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
+        action="new-report"
+        action_arg="$2"
+        shift 2
+        ;;
+      --new-report=*)
+        [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
+        action="new-report"
+        action_arg="${1#--new-report=}"
+        shift
+        ;;
       -T)
+        [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
+        action="list-tasks"
+        shift
+        ;;
+      --list-tasks)
         [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
         action="list-tasks"
         shift
@@ -430,12 +452,38 @@ main() {
         action_arg="$2"
         shift 2
         ;;
+      --new-task)
+        [[ $# -ge 2 ]] || die_usage "missing argument for -N"
+        [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
+        action="new-task"
+        action_arg="$2"
+        shift 2
+        ;;
+      --new-task=*)
+        [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
+        action="new-task"
+        action_arg="${1#--new-task=}"
+        shift
+        ;;
       -S)
         [[ $# -ge 2 ]] || die_usage "missing argument for -S"
         [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
         action="switch-task"
         action_arg="$2"
         shift 2
+        ;;
+      --switch-task)
+        [[ $# -ge 2 ]] || die_usage "missing argument for -S"
+        [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
+        action="switch-task"
+        action_arg="$2"
+        shift 2
+        ;;
+      --switch-task=*)
+        [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S can be used at a time"
+        action="switch-task"
+        action_arg="${1#--switch-task=}"
+        shift
         ;;
       -h|--help)
         show_help=1

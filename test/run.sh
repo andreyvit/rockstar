@@ -70,6 +70,32 @@ test_status_lists_reports() {
   assert_eq "$got" "$want"
 }
 
+test_long_options_dir_and_status() {
+  local tmp
+  tmp="$(mktemp_dir)"
+
+  local task_dir="2025-10-02-refactor-something"
+  mkdir -p "$tmp/mytasks/$task_dir"
+  ln -s "$task_dir" "$tmp/mytasks/current"
+  touch "$tmp/mytasks/$task_dir/001-user-request.md"
+
+  local got
+  got="$("$bureau" --dir "$tmp/mytasks")"
+
+  local want
+  want="Current task reports dir: ${tmp}/mytasks/2025-10-02-refactor-something
+
+[1 reports found]
+001-user-request.md
+
+[to start new report file] bureau -n <report-suffix>
+[to switch to a new task]  bureau -N <task-suffix>
+[to switch to prior task]  bureau -S <YYYY-MM-DD-task-suffix>
+[to see recent tasks]      bureau -T"
+
+  assert_eq "$got" "$want"
+}
+
 test_new_report_file_prints_next() {
   local tmp
   tmp="$(mktemp_dir)"
@@ -88,6 +114,24 @@ test_new_report_file_prints_next() {
 
   local want
   want=$'Write your report to:\n_tasks/2025-10-02-refactor-something/005-your-suffix.md'
+
+  assert_eq "$got" "$want"
+}
+
+test_long_options_new_report() {
+  local tmp
+  tmp="$(mktemp_dir)"
+
+  local task_dir="2025-10-02-refactor-something"
+  mkdir -p "$tmp/_tasks/$task_dir"
+  ln -s "$task_dir" "$tmp/_tasks/current"
+  touch "$tmp/_tasks/$task_dir/001-user-request.md"
+
+  local got
+  got="$(cd "$tmp" && "$bureau" --new-report your-suffix)"
+
+  local want
+  want=$'Write your report to:\n_tasks/2025-10-02-refactor-something/002-your-suffix.md'
 
   assert_eq "$got" "$want"
 }
@@ -117,6 +161,29 @@ ${today}-refactor-something"
   assert_eq "$got" "$want"
 }
 
+test_long_options_list_tasks() {
+  local tmp
+  tmp="$(mktemp_dir)"
+
+  local d1 today
+  d1="$(date_utc_days_ago 10)"
+  today="$(date -u +%F)"
+
+  mkdir -p \
+    "$tmp/_tasks/${d1}-implement-feature" \
+    "$tmp/_tasks/${today}-refactor-something"
+
+  local got
+  got="$(cd "$tmp" && "$bureau" --list-tasks)"
+
+  local want
+  want="[2 tasks in past month]
+${d1}-implement-feature
+${today}-refactor-something"
+
+  assert_eq "$got" "$want"
+}
+
 test_new_task_uses_today_and_b_suffix() {
   local tmp
   tmp="$(mktemp_dir)"
@@ -133,6 +200,30 @@ test_new_task_uses_today_and_b_suffix() {
   out2="$(cd "$tmp" && "$bureau" -N second-task)"
   got2="${out2%%$'\n'*}"
   assert_eq "$got2" "Switched to new task ${today}b-second-task."
+}
+
+test_long_options_new_task_and_switch_task() {
+  local tmp
+  tmp="$(mktemp_dir)"
+
+  local today
+  today="$(date -u +%F)"
+
+  local out task_dir
+  out="$(cd "$tmp" && "$bureau" --new-task demo)"
+  task_dir="${out#Switched to new task }"
+  task_dir="${task_dir%%.*}"
+
+  if [[ "$task_dir" != "$today-demo" ]]; then
+    fail "unexpected task_dir: $task_dir"
+  fi
+
+  mkdir -p "$tmp/_tasks/${today}b-other"
+
+  local out2 first
+  out2="$(cd "$tmp" && "$bureau" --switch-task "${today}b-other")"
+  first="${out2%%$'\n'*}"
+  assert_eq "$first" "Switched to preexisting task ${today}b-other."
 }
 
 test_switch_task() {
@@ -169,9 +260,13 @@ main() {
 
   test_status_no_current
   test_status_lists_reports
+  test_long_options_dir_and_status
   test_new_report_file_prints_next
+  test_long_options_new_report
   test_list_recent_tasks
+  test_long_options_list_tasks
   test_new_task_uses_today_and_b_suffix
+  test_long_options_new_task_and_switch_task
   test_switch_task
   test_help_output_contains_status
 
