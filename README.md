@@ -152,28 +152,27 @@ When switching tasks, the existing `current` symlink (if any) is removed and rec
 
 Within a task directory, “report files” are any filenames matching:
 
-`^\d+-.*\.md$`
+any filename that starts with a digit
 
 Examples:
 - `001-user-request.md` ✅
 - `42-not-padded.md` ✅
+- `1` ✅
 - `notes.md` ❌
 
 The report listing is:
-- sorted lexicographically by filename
+- sorted numerically by the leading number (like `sort -n`)
 - returned in full if there are ≤ 50 report files
 - truncated if there are > 50 report files: earliest 20 + latest 30
-
-Because sorting is lexicographic (not numeric), non-zero-padded numeric prefixes can appear “out of order” (e.g. `100-...` comes before `11-...`). Truncation is also based on this lexicographic order.
 
 ### Next report file number
 
 To choose the next report number, bureau:
 - scans the (possibly truncated) report listing
-- extracts numeric prefixes before `-`
+- extracts leading digits from each filename
 - uses `max(prefixes) + 1` (gaps are ignored)
 
-This is intentionally identical to the original implementation, including the edge case where a directory with >50 report files and “odd” lexicographic ordering could theoretically cause `max(prefixes)` to be missed.
+Because the listing is numerically sorted, the maximum prefix is always included in the “latest 30” slice, so truncation does not affect the next-number computation.
 
 The filename format for new report files is:
 
