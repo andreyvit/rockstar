@@ -111,12 +111,9 @@ date_suffix_for_index() {
   fi
 
   if [[ "$i" -le 24 ]]; then
-    local ascii=$((97 + i))
-    local oct
-    # Convert ascii code to a letter without non-portable tools (printf octal escape).
-    oct="$(printf '%03o' "$ascii")"
-    local letter
-    letter="$(printf "\\$oct")"
+    # Bash substring indexing is 0-based; i=1 => "b", i=24 => "y".
+    local letters="abcdefghijklmnopqrstuvwxyz"
+    local letter="${letters:i:1}"
     printf '%s%s' "$today" "$letter"
     return 0
   fi
