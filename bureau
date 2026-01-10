@@ -341,8 +341,8 @@ cmd_install_symlink() {
   src="$(resolve_script_path "$0")"
 
   local dest_dir=""
-  if mkdir -p "$HOME/.bin" 2>/dev/null && [[ -w "$HOME/.bin" ]]; then
-    dest_dir="$HOME/.bin"
+  if [[ -d "$HOME/bin" && -w "$HOME/bin" ]]; then
+    dest_dir="$HOME/bin"
   elif [[ -d /usr/local/bin && -w /usr/local/bin ]]; then
     dest_dir="/usr/local/bin"
   else
@@ -363,8 +363,8 @@ cmd_install_symlink() {
   fi
 
   printf 'Installed %s -> %s\n' "$dest" "$src"
-  if [[ "$dest_dir" == "$HOME/.bin" ]]; then
-    printf 'Ensure %s is on your PATH.\n' "$HOME/.bin"
+  if [[ "$dest_dir" == "$HOME/bin" ]]; then
+    printf 'Ensure %s is on your PATH.\n' "$HOME/bin"
   fi
 }
 

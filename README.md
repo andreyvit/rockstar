@@ -199,4 +199,4 @@ To install a `bureau` symlink on your `PATH`:
 ./bureau --install-symlink
 ```
 
-It prefers `~/.bin` (if writable), then `/usr/local/bin` (if writable), otherwise it uses `sudo` to write to `/usr/local/bin`.
+It prefers `~/bin` if it already exists and is writable, then `/usr/local/bin` (if writable), otherwise it uses `sudo` to write to `/usr/local/bin`.
