@@ -306,7 +306,7 @@ cmd_help() {
   printf '%s\n' "Install a global symlink via --install-symlink."
 }
 
-require_single_action() { [[ "$action" == "status" ]] || die_usage "only one of -n, -T, -N, -S, --install-symlink can be used at a time"; }
+require_single_action() { [[ "$action" == "cmd_status" ]] || die_usage "only one of -n, -T, -N, -S, --install-symlink can be used at a time"; }
 
 require_arg() { [[ $# -ge 2 ]] || die_usage "missing argument for $1"; }
 
@@ -380,7 +380,7 @@ main() {
     esac
   done
 
-  local action="status"
+  local action="cmd_status"
   local action_arg=""
 
   while [[ $# -gt 0 ]]; do
@@ -388,32 +388,32 @@ main() {
       -n|--new-report)
         require_arg "-n/--new-report" "$@"
         require_single_action
-        action="new-report"
+        action="cmd_new_report_file"
         action_arg="$2"
         shift 2
         ;;
       -T|--list-tasks)
         require_single_action
-        action="list-tasks"
+        action="cmd_list_recent_tasks"
         shift
         ;;
       -N|--new-task)
         require_arg "-N/--new-task" "$@"
         require_single_action
-        action="new-task"
+        action="cmd_new_task"
         action_arg="$2"
         shift 2
         ;;
       -S|--switch-task)
         require_arg "-S/--switch-task" "$@"
         require_single_action
-        action="switch-task"
+        action="cmd_switch_task"
         action_arg="$2"
         shift 2
         ;;
       --install-symlink)
         require_single_action
-        action="install-symlink"
+        action="cmd_install_symlink"
         shift
         ;;
       *)
@@ -424,15 +424,7 @@ main() {
 
   init_bureau_dir
 
-  case "$action" in
-    status) cmd_status ;;
-    new-report) cmd_new_report_file "$action_arg" ;;
-    list-tasks) cmd_list_recent_tasks ;;
-    new-task) cmd_new_task "$action_arg" ;;
-    switch-task) cmd_switch_task "$action_arg" ;;
-    install-symlink) cmd_install_symlink ;;
-    *) die_usage "internal error: unknown action $action" ;;
-  esac
+  "$action" "$action_arg"
 }
 
 main "$@"
