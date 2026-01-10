@@ -197,5 +197,5 @@ The filename format for new report files is:
 Run regression tests:
 
 ```bash
-./test/run.sh
+./bureau-selftest.sh
 ```
