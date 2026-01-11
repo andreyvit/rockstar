@@ -10,7 +10,7 @@ LLMs suffer from drift (when mundanity overshadows the big things) and compactio
 
 Bureau assists in keeping a per-task directory with numbered report files. You create and read these files, Bureau only takes care of paths.
 
-Run as `${CLAUDE_PLUGIN_ROOT}/bureau` (Claude) or just `bureau` (Codex, others).
+Run as `scripts/bureau` (relative to skill root) or just `bureau` (if installed globally).
 
 
 ## THREE IMPORTANT CHANGES

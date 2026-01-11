@@ -14,6 +14,7 @@ date_today() { date +%F; }
 
 TASK_NAME_RE='^[0-9]{4}'
 REPORT_NAME_RE='^[0-9]'
+DEFAULT_SUBDIR='.tasks'
 
 list_basenames_matching() {
   local dir="$1"
@@ -304,11 +305,11 @@ cmd_help() {
   printf '\n'
   printf '%s\n' "Additional options:"
   printf '\n'
-  printf '%s\n' "Override _tasks subdir name by setting BUREAU_DIR=<subdir>."
+  printf '%s\n' "Override $DEFAULT_SUBDIR subdir name by setting BUREAU_DIR=<subdir>."
   printf '%s\n' "This can be a name, a relative path or an absolute path."
   printf '\n'
   printf '%s\n' "  --install-symlink       Install a global symlink (~/bin or /usr/local/bin)."
-  printf '%s\n' "  --install               Install a global copy (~/bin or /usr/local/bin)."
+  printf '%s\n' "  --install-copy          Install a global copy (~/bin or /usr/local/bin)."
 }
 
 require_single_action() { [[ -z "$action" ]] || die_usage "only one action allowed at a time"; }
@@ -323,7 +324,7 @@ script_path() {
     *)
       # If invoked via $PATH, ${BASH_SOURCE[0]} has no directory component.
       # Refuse, because install should be run from a known file path (e.g. ./bureau).
-      die_usage "can't determine script path; run install as ./bureau --install or ./bureau --install-symlink"
+      die_usage "can't determine script path; run install as ./bureau"
       ;;
   esac
   printf '%s\n' "$src"
@@ -352,16 +353,14 @@ install_pick_dest_dir() {
   INSTALL_SUDO=sudo
 }
 
-cmd_install() {
+cmd_install_copy() {
   local src
   src="$(script_path)"
 
   install_pick_dest_dir
 
   local dest="$INSTALL_DEST_DIR/bureau"
-
-  [[ -e "$dest" || -L "$dest" ]] && die_usage "can't install: already exists: $dest"
-
+  $INSTALL_SUDO rm -f "$dest"
   $INSTALL_SUDO cp -f "$src" "$dest"
   $INSTALL_SUDO chmod 0755 "$dest"
   printf 'Installed %s\n' "$dest"
@@ -374,13 +373,12 @@ cmd_install_symlink() {
   install_pick_dest_dir
 
   local dest="$INSTALL_DEST_DIR/bureau"
-  [[ -e "$dest" || -L "$dest" ]] && die_usage "can't install: already exists: $dest"
-
+  $INSTALL_SUDO rm -f "$dest"
   $INSTALL_SUDO ln -sf "$src" "$dest"
   printf 'Installed symlink %s -> %s\n' "$dest" "$src"
 }
 
-if [[ -z "${BUREAU_DIR:-}" ]]; then BUREAU_DIR="_tasks"; fi
+if [[ -z "${BUREAU_DIR:-}" ]]; then BUREAU_DIR="$DEFAULT_SUBDIR"; fi
 if [[ "$BUREAU_DIR" != "/" ]]; then BUREAU_DIR="${BUREAU_DIR%/}"; fi
 
 action=""
@@ -410,9 +408,9 @@ while [[ $# -gt 0 ]]; do
       action="cmd_switch_task"
       action_arg="$2"
       shift 2 ;;
-    --install)
+    --install-copy)
       require_single_action
-      action="cmd_install"
+      action="cmd_install_copy"
       shift ;;
     --install-symlink)
       require_single_action

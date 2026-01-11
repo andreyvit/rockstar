@@ -1,0 +1,58 @@
+#!/bin/bash
+set -euo pipefail
+cd "$(dirname "$0")"
+
+echo "Rockstar Codex Installer"
+echo "========================"
+
+again=true
+while $again; do
+    again=false
+    echo ""
+    echo "Where do you want to install Rockstar for Codex?"
+    echo ""
+    echo "  U) Per-user (~/.codex/skills/) - available in all projects"
+    echo "  P) Per-project (.codex/skills/) - travels with this project"
+    echo "  S) Skip Codex installation"
+    echo "  Q) Abort and quit installer"
+    echo ""
+
+    read -p "Choose [U/P/S/Q]: " choice
+    echo ""
+
+    case "$choice" in
+        [Uu]) DEST_DIR="$HOME/.codex" ;;
+        [Pp]) DEST_DIR=".codex" ;;
+        [Ss]) DEST_DIR="" ;;
+        [Qq]) echo "Aborting installation."; exit 0 ;;
+        *) echo "Invalid choice."; again=true ;;
+    esac
+done
+
+CODEX_ITEMS=(
+    skills/report-keeping
+    skills/star-team
+)
+
+if test -n "$DEST_DIR"; then
+    mkdir -p "$DEST_DIR"
+    mkdir -p "$DEST_DIR/skills"
+
+    echo ""
+    for item in $CODEX_ITEMS; do
+        DEST="$DEST_DIR/$item"
+        echo "Installing: $DEST"
+        rm -rf "$DEST"
+        cp -r "$item" "$DEST"
+    done
+
+    echo ""
+    echo "Done! Codex plugin installed."
+else
+    echo ""
+    echo "Codex installation skipped."
+fi
+
+echo ""
+echo "Installing bureau CLI..."
+skills/report-keeping/scripts/bureau --install-symlink

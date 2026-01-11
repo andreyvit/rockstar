@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-bureau="$repo_root/bureau"
+scripts_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+bureau="$scripts_dir/bureau"
 
 mktemp_dir() {
   local d
@@ -57,7 +57,7 @@ assert_dir_exists() { [[ -d "$1" ]] || fail "expected directory: $1"; }
 test_status_no_current_does_not_error() {
   local tmp
   tmp="$(mktemp_dir)"
-  (cd "$tmp" && mkdir -p _tasks)
+  (cd "$tmp" && mkdir -p .tasks)
 
   local out
   out="$(cd "$tmp" && "$bureau")"
@@ -69,13 +69,13 @@ test_status_with_current_does_not_error() {
   tmp="$(mktemp_dir)"
 
   local task_dir="2025-10-02-refactor-something"
-  mkdir -p "$tmp/_tasks/$task_dir"
-  ln -s "$task_dir" "$tmp/_tasks/current"
+  mkdir -p "$tmp/.tasks/$task_dir"
+  ln -s "$task_dir" "$tmp/.tasks/current"
   touch \
-    "$tmp/_tasks/$task_dir/001-user-request.md" \
-    "$tmp/_tasks/$task_dir/002-plan.md" \
-    "$tmp/_tasks/$task_dir/003-implementation.md" \
-    "$tmp/_tasks/$task_dir/004-tests.md"
+    "$tmp/.tasks/$task_dir/001-user-request.md" \
+    "$tmp/.tasks/$task_dir/002-plan.md" \
+    "$tmp/.tasks/$task_dir/003-implementation.md" \
+    "$tmp/.tasks/$task_dir/004-tests.md"
 
   local out
   out="$(cd "$tmp" && "$bureau")"
@@ -87,13 +87,13 @@ test_new_report_file_returns_path_and_does_not_create_file() {
   tmp="$(mktemp_dir)"
 
   local task_dir="2025-10-02-refactor-something"
-  mkdir -p "$tmp/_tasks/$task_dir"
-  ln -s "$task_dir" "$tmp/_tasks/current"
+  mkdir -p "$tmp/.tasks/$task_dir"
+  ln -s "$task_dir" "$tmp/.tasks/current"
   touch \
-    "$tmp/_tasks/$task_dir/001-user-request.md" \
-    "$tmp/_tasks/$task_dir/002-plan.md" \
-    "$tmp/_tasks/$task_dir/003-implementation.md" \
-    "$tmp/_tasks/$task_dir/004-tests.md"
+    "$tmp/.tasks/$task_dir/001-user-request.md" \
+    "$tmp/.tasks/$task_dir/002-plan.md" \
+    "$tmp/.tasks/$task_dir/003-implementation.md" \
+    "$tmp/.tasks/$task_dir/004-tests.md"
 
   local out path
   out="$(cd "$tmp" && "$bureau" -n your-suffix)"
@@ -115,10 +115,10 @@ test_list_tasks_returns_last_10() {
   local tmp
   tmp="$(mktemp_dir)"
 
-  mkdir -p "$tmp/_tasks"
+  mkdir -p "$tmp/.tasks"
   local i
   for ((i = 1; i <= 12; i++)); do
-    mkdir -p "$tmp/_tasks/2025-10-$(printf '%02d' "$i")-task-$i"
+    mkdir -p "$tmp/.tasks/2025-10-$(printf '%02d' "$i")-task-$i"
   done
 
   local out
@@ -141,12 +141,12 @@ test_new_task_creates_dir_and_updates_current() {
   out="$(cd "$tmp" && "$bureau" -N first-task)"
   assert_contains "$out" "Switched to new task"
 
-  assert_symlink_target "$tmp/_tasks/current" "$today-first-task"
-  assert_dir_exists "$tmp/_tasks/$today-first-task"
+  assert_symlink_target "$tmp/.tasks/current" "$today-first-task"
+  assert_dir_exists "$tmp/.tasks/$today-first-task"
 
   (cd "$tmp" && "$bureau" -N second-task >/dev/null)
-  assert_symlink_target "$tmp/_tasks/current" "${today}b-second-task"
-  assert_dir_exists "$tmp/_tasks/${today}b-second-task"
+  assert_symlink_target "$tmp/.tasks/current" "${today}b-second-task"
+  assert_dir_exists "$tmp/.tasks/${today}b-second-task"
 }
 
 test_new_task_rejects_space_or_slash() {
@@ -173,13 +173,13 @@ test_switch_task_updates_current() {
   local tmp
   tmp="$(mktemp_dir)"
 
-  mkdir -p "$tmp/_tasks/2025-10-01-implement-feature"
-  mkdir -p "$tmp/_tasks/2025-10-01b-fix-bug"
-  ln -s "2025-10-01-implement-feature" "$tmp/_tasks/current"
-  assert_symlink_target "$tmp/_tasks/current" "2025-10-01-implement-feature"
+  mkdir -p "$tmp/.tasks/2025-10-01-implement-feature"
+  mkdir -p "$tmp/.tasks/2025-10-01b-fix-bug"
+  ln -s "2025-10-01-implement-feature" "$tmp/.tasks/current"
+  assert_symlink_target "$tmp/.tasks/current" "2025-10-01-implement-feature"
 
   (cd "$tmp" && "$bureau" -S 2025-10-01b-fix-bug >/dev/null)
-  assert_symlink_target "$tmp/_tasks/current" "2025-10-01b-fix-bug"
+  assert_symlink_target "$tmp/.tasks/current" "2025-10-01b-fix-bug"
 }
 
 test_new_report_rejects_space_or_slash() {
@@ -187,11 +187,11 @@ test_new_report_rejects_space_or_slash() {
   tmp="$(mktemp_dir)"
 
   local task_dir="2025-10-02-refactor-something"
-  mkdir -p "$tmp/_tasks/$task_dir"
-  ln -s "$task_dir" "$tmp/_tasks/current"
+  mkdir -p "$tmp/.tasks/$task_dir"
+  ln -s "$task_dir" "$tmp/.tasks/current"
   touch \
-    "$tmp/_tasks/$task_dir/001-user-request.md" \
-    "$tmp/_tasks/$task_dir/002-plan.md"
+    "$tmp/.tasks/$task_dir/001-user-request.md" \
+    "$tmp/.tasks/$task_dir/002-plan.md"
 
   local out status
   if out="$(cd "$tmp" && "$bureau" -n "bad slug" 2>&1)"; then
@@ -212,7 +212,7 @@ test_new_report_rejects_space_or_slash() {
 test_help_mentions_bureau_dir() {
   local tmp
   tmp="$(mktemp_dir)"
-  (cd "$tmp" && mkdir -p _tasks)
+  (cd "$tmp" && mkdir -p .tasks)
 
   local out
   out="$(cd "$tmp" && "$bureau" -h)"

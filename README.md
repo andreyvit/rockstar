@@ -2,47 +2,54 @@
 
 # Rockstar
 
-Collection of AI skills and extensions to rock your development
+Collection of AI skills and extensions to rock your development.
 
-_for Claude Code & Codex_
+_Compatible with Claude Code and Codex_
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 </div>
 
-Rockstar is a collection of plugins and skills that enhance AI-assisted development workflows in Claude Code and Codex.
+Rockstar is a collection of skills, commands and tools that enhance AI-assisted development workflows in Claude Code and Codex.
+
+Contains:
+
+* report-keeping
+* star-team
 
 
 ## Installation
 
-Add the following to your `AGENTS.md`:
-
-```
-Use report-keeping skill for all future user requests and tasks.
-```
-
-and then install into your coding agent.
-
-### Claude Code
+**Claude Code** — use my marketplace:
 
 ```shell
-/plugin marketplace add andreyvit/rockstar
-/plugin install bureau@rockstar
+/plugin marketplace add andreyvit/claude-code-plugins
+/plugin install rockstar
 ```
 
-### Codex
-
-Clone and run the installer:
+**Codex** — clone and run the installer:
 
 ```shell
 git clone https://github.com/andreyvit/rockstar.git
-./rockstar/install-codex
+cd rockstar
+./install
 ```
 
-See [Codex skills documentation](https://developers.openai.com/codex/skills/create-skill) for more details.
+See also: [Codex skills docs](https://developers.openai.com/codex/skills/create-skill).
 
 
-## Bureau Plugin
+## Using the skills
+
+If you want to use a skill occasionally, just tell your agent to e.g. `use star-team skill` when you want to.
+
+To enable by default, add the following to your `AGENTS.md`:
+
+```
+Use report-keeping and star-team skills for all future user requests and tasks.
+```
+
+
+## `report-keeping` skill
 
 > Teaches your AI agents to store your input and write report files after each step. This solves agent amnesia and helps medium-term steering.
 
@@ -62,8 +69,33 @@ _tasks/
 ```
 
 Bureau provides:
-- A **skill** that tells agents to read and write these reports
-- A **CLI tool** that ensures correct naming and handling of files
+
+- A skill that tells agents to read and write these reports
+- A CLI tool that ensures correct naming and handling of files
+
+You can install `bureau` tool by running `skills/report-keeping/scripts/bureau --install-symlink`.
+
+When run without arguments, `bureau` prints the current task directory and a list of report files:
+
+```
+Current task reports dir: _tasks/2025-10-02-refactor-something
+
+[4 reports found]
+001-user-request.md
+002-plan.md
+003-implementation.md
+004-tests.md
+
+[to start new report file] bureau -n <report-suffix>
+[to switch to a new task]  bureau -N <task-suffix>
+[to switch to prior task]  bureau -S <YYYY-MM-DD-task-suffix>
+[to see recent tasks]      bureau -T
+```
+
+
+## `star-team` skill
+
+WIP.
 
 
 ---
@@ -71,25 +103,14 @@ Bureau provides:
 
 ## Hacking on Rockstar
 
-### Setup
-
-Clone the repo, then add it as a local marketplace:
-
 ```shell
-/plugin marketplace add /path/to/rockstar
-/plugin install bureau@rockstar
+claude --plugin-dir /path/to/rockstar
 ```
 
-Or for temporary per-session loading:
-
-```shell
-claude --plugin-dir /path/to/rockstar/bureau
-```
-
-### Testing
+Bureau self-test:
 
 ```bash
-./bureau/bureau-selftest.sh
+skills/report-keeping/scripts/bureau-selftest.sh
 ```
 
 ---
