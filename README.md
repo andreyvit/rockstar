@@ -1,11 +1,23 @@
+<div align="center">
+
 # Rockstar
 
-Claude Code & Codex plugins/skills to rock your development, by Andrey Tarantsov.
+**Claude Code & Codex plugins/skills to rock your development**
 
+*by Andrey Tarantsov*
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+</div>
+
+Rockstar is a collection of plugins and skills that enhance AI-assisted development workflows in Claude Code and Codex.
+
+---
 
 ## Installation
 
-### Installation in Claude Code
+<details open>
+<summary><strong>Claude Code</strong></summary>
 
 Add this marketplace and install plugins:
 
@@ -14,7 +26,10 @@ Add this marketplace and install plugins:
 /plugin install bureau@rockstar
 ```
 
-### Installation in Codex
+</details>
+
+<details>
+<summary><strong>Codex</strong></summary>
 
 Clone and copy the skill + CLI:
 
@@ -31,12 +46,15 @@ cp -r rockstar/bureau/skills/report-keeping .codex/skills/
 
 See [Codex Skills documentation](https://developers.openai.com/codex/skills/create-skill) for more details.
 
+</details>
 
-## Plugin 1: Bureau
+---
 
-Teaches your AI agents to store your input and write report files after each step. This solves agent amnesia and helps medium-term steering.
+## Bureau Plugin
 
-When an agent works in multiple iterative steps, it’s helpful to keep a structured set of “reports”:
+> Teaches your AI agents to store your input and write report files after each step. This solves agent amnesia and helps medium-term steering.
+
+When an agent works in multiple iterative steps, it's helpful to keep a structured set of "reports":
 
 ```
 _tasks/
@@ -51,12 +69,15 @@ _tasks/
     └── 002-plan.md
 ```
 
-Bureau provides a skill that tells agents to read and write these reports, and a tool that ensures correct naming and handling of files.
+Bureau provides:
+- A **skill** that tells agents to read and write these reports
+- A **CLI tool** that ensures correct naming and handling of files
 
+---
 
-## How to work on this repo
+## Development
 
-### Installation for development
+### Setup
 
 Clone the repo, then add it as a local marketplace:
 
@@ -65,7 +86,7 @@ Clone the repo, then add it as a local marketplace:
 /plugin install bureau@rockstar
 ```
 
-Alternatively, for temporary per-session loading without installation:
+Or for temporary per-session loading:
 
 ```shell
 claude --plugin-dir /path/to/rockstar/bureau
@@ -77,6 +98,7 @@ claude --plugin-dir /path/to/rockstar/bureau
 ./bureau/bureau-selftest.sh
 ```
 
+---
 
 ## License
 
