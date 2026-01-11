@@ -2,9 +2,9 @@
 
 # Rockstar
 
-**Claude Code & Codex plugins/skills to rock your development**
+Collection of AI skills and extensions to rock your development
 
-*by Andrey Tarantsov*
+_for Claude Code & Codex_
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -12,43 +12,35 @@
 
 Rockstar is a collection of plugins and skills that enhance AI-assisted development workflows in Claude Code and Codex.
 
----
 
 ## Installation
 
-<details open>
-<summary><strong>Claude Code</strong></summary>
+Add the following to your `AGENTS.md`:
 
-Add this marketplace and install plugins:
+```
+Use report-keeping skill for all future user requests and tasks.
+```
+
+and then install into your coding agent.
+
+### Claude Code
 
 ```shell
 /plugin marketplace add andreyvit/rockstar
 /plugin install bureau@rockstar
 ```
 
-</details>
+### Codex
 
-<details>
-<summary><strong>Codex</strong></summary>
-
-Clone and copy the skill + CLI:
+Clone and run the installer:
 
 ```shell
 git clone https://github.com/andreyvit/rockstar.git
-./rockstar/bureau/bureau --install-symlink
-
-# Copy the skill (user-scoped)
-cp -r rockstar/bureau/skills/report-keeping ~/.codex/skills/
-
-# Or for repo-scoped (travels with your project)
-cp -r rockstar/bureau/skills/report-keeping .codex/skills/
+./rockstar/install-codex
 ```
 
-See [Codex Skills documentation](https://developers.openai.com/codex/skills/create-skill) for more details.
+See [Codex skills documentation](https://developers.openai.com/codex/skills/create-skill) for more details.
 
-</details>
-
----
 
 ## Bureau Plugin
 
@@ -73,9 +65,11 @@ Bureau provides:
 - A **skill** that tells agents to read and write these reports
 - A **CLI tool** that ensures correct naming and handling of files
 
+
 ---
 
-## Development
+
+## Hacking on Rockstar
 
 ### Setup
 

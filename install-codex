@@ -1,0 +1,52 @@
+#!/bin/bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+SKILL_SRC="bureau/skills/report-keeping"
+SKILL_NAME="report-keeping"
+
+echo "Rockstar Codex Installer"
+echo "========================"
+echo ""
+echo "Where do you want to install the $SKILL_NAME skill?"
+echo ""
+echo "  1) Per-user (~/.codex/skills/) - available in all projects"
+echo "  2) Per-project (.codex/skills/) - travels with this project"
+echo ""
+
+read -p "Choose [1/2]: " choice
+
+case "$choice" in
+    1)
+        DEST_DIR="$HOME/.codex/skills"
+        ;;
+    2)
+        DEST_DIR=".codex/skills"
+        ;;
+    *)
+        echo "Invalid choice. Exiting."
+        exit 1
+        ;;
+esac
+
+DEST="$DEST_DIR/$SKILL_NAME"
+
+echo ""
+echo "Installing to: $DEST"
+
+mkdir -p "$DEST_DIR"
+rm -rf "$DEST"
+cp -r "$SKILL_SRC" "$DEST"
+
+echo "Skill installed."
+
+echo ""
+echo "Installing bureau CLI..."
+./bureau/bureau --install-symlink
+
+echo ""
+echo "Done! Add the following to your AGENTS.md:"
+echo ""
+echo "    Use report-keeping skill for all future user requests and tasks."
+echo ""
